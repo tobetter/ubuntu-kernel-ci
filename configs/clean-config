@@ -2,6 +2,7 @@
 # clear all package_config settings
 cat << __end__
 unset board_config_branch
+unset board_config_repo
 unset distribution
 unset kernel_branch
 unset kernel_repo
