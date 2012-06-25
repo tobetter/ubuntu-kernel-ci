@@ -1,0 +1,448 @@
+#!/bin/bash
+
+# instructions:
+# git checkout -f tmp
+# git reset --hard some-ubuntu-release-commitish
+# uses:
+# reference-linaro-sauce-base-$version
+# reference-linaro-sauce-tip-$version
+# reference-linaro-packaging-base-$version
+# reference-linaro-packaging-tip-$version
+# to apply linaro patches
+
+set -x
+set -e
+shopt -s extglob
+
+# exit with error message and bad exit status
+#
+carp()
+{
+	echo $1
+	exit -1
+}
+
+# exit with message and good exit status
+#
+infoexit()
+{
+	echo -e $1
+	exit 0
+}
+
+# echo message if being verbose
+#
+verbose_info()
+{
+	test "$verbose" && echo $1
+	true
+}
+
+# when finished mv the kernel back up
+#
+cleanup()
+{
+	git checkout -f tmp
+	test "$keeptempbranches" = "true" || {
+		for tb in $(git branch | sed 's/*//' | grep 'tbranch')
+		do
+			git branch -D $tb || true
+		done
+	}
+}
+
+# help -- duh
+#
+usage()
+{
+	helpstring=$(cat <<-ENDOFHELP
+		usage: $scriptname [OPTIONS]\n
+		  -h, --help\tprint this help\n
+		  --overwrite\tok to overwrite existing directories\n
+ENDOFHELP
+)
+	infoexit "$helpstring"
+}
+
+carefull_mkdir()
+{
+	test -d "$1" -a "$overwriteok" != "true" &&
+		carp "cowardly refusing to overwrite $1"
+	rm -rf $1
+	mkdir -p $1
+}
+
+pvar()
+{
+	verbose_info "$1 = $(eval "echo \$$1")"
+}
+
+# only do this if fullauto is true
+full_auto_init()
+{
+	git checkout -f tmp ||
+		git checkout -b tmp
+	git reset --hard $ubuntu_sauce_to_use
+	git clean -d -f -x
+}
+
+# find a linus base of the form vN.M, vN.M-rcX or a stable
+# base of the form vJ.K.M
+# on completion upstream_tag will be set to this tag
+#
+# also find the first Ubuntu patch as it needs special attention
+# since it has both sauce and packaging
+# on completion first_ubuntu_commit will be set to the commitid of the first 
+# ubuntu commit
+# 
+# save commitid of current HEAD in ubuntu_head
+#
+get_commit_info()
+{
+	local long_desc=$(git describe --match 'v*' | sed s/-rc/_rc/)
+	upstream_tag=$(echo $long_desc | awk -F '-' '{ print $1 }' | sed s/_rc/-rc/)
+	pvar upstream_tag
+	upstream_base_version=$(echo $upstream_tag | sed -e 's/v//' -e 's/-rc.*//')
+
+	local ncmts=$(echo $long_desc | awk -F '-' '{ print $2 }')
+	: $(( ncmts-- ))
+	first_ubuntu_commit=$(git log -1 --pretty="%H" HEAD~$ncmts)
+
+	ubuntu_head=$(git log -1 --pretty="%H" HEAD)
+	pvar ubuntu_head
+	true
+}
+
+# if the working branch does not exist then create it
+#
+prepare_working_branch()
+{
+	: ${workingbranch:="tbranch$(rand)"}
+	pvar workingbranch
+	git show-ref --verify --quiet refs/heads/$workingbranch ||
+		git branch $workingbranch
+	git checkout -f $workingbranch
+	git reset --hard $upstream_tag
+	git clean -d -f -x
+	true
+}
+
+# split the initial ubuntu commit into its sauce and packaging parts
+#
+process_first_ubuntu_patch()
+{
+	git reset --hard $first_ubuntu_commit
+	git clean -d -f -x
+	git rm -r debian debian.master dropped.txt
+	git commit --amend -s -m "$(git log -1 --pretty="SAUCE only changes from %h %s" $first_ubuntu_commit)"
+	git format-patch -1 -o $sauce_patchdir
+
+	git reset --hard $upstream_tag
+	git clean -d -f -x
+	git checkout $first_ubuntu_commit -- debian debian.master dropped.txt
+	git commit -s -m "$(git log -1 --pretty="Packaging only changes from %h %s" $first_ubuntu_commit)"
+	git format-patch -1 -o $packaging_patchdir
+
+	rm $patchdir/0001*
+	true
+}
+
+# setup directories for patches and populate
+#
+dump_patches()
+{
+	: ${patchdir:="../patches"}
+	: ${sauce_patchdir:="${patchdir}/sauce_patches"}
+	: ${packaging_patchdir:="${patchdir}/packaging_patches"}
+	: ${combined_patchdir:="${patchdir}/combined_patches"}
+
+	carefull_mkdir $patchdir
+	carefull_mkdir $sauce_patchdir
+	carefull_mkdir $packaging_patchdir
+	carefull_mkdir $combined_patchdir
+
+	git format-patch -o $patchdir $upstream_tag
+	true
+}
+
+# for all the patches with names 0*.patch, sort them into
+# sauce, packaging or combined patches
+# combined are actually unexpected so error out on those
+#
+process_remaining_patches()
+{
+	for p in $patchdir/0*.patch
+	do
+		echo $p
+		saucecount=$(diffstat -p1 -k -l $p |
+			grep -v '^debian\|\dropped' |
+			wc |
+			awk '{ print $1 }')
+		pkgcount=$(diffstat -p1 -k -l $p |
+			grep '^debian\|\dropped' |
+			wc |
+			awk '{ print $1 }')
+		echo "$saucecount files changed as sauce\n\
+			$pkgcount files changed in debian packaging"
+		combo="$saucecount:$pkgcount"
+		case $combo in
+			0:0	)
+				carp "weird patch: $p has seems to have neither sauce nor packaging diffs"
+				;;
+			0:*	)
+				verbose_info "$p is a pure packaging patch"
+				cp $p $packaging_patchdir
+				;;
+			*:0	)
+				verbose_info "$p is a pure sauce patch"
+				cp $p $sauce_patchdir
+				;;
+			*:*	)
+				carp "combined sauce and packaging patch $p needs special handling"
+				;;
+		esac
+	done
+	true
+}
+
+apply_sauce_patches()
+{
+	git reset --hard $upstream_tag
+	git am $sauce_patchdir/0*.patch
+	true
+}
+
+apply_linaro_sauce_patches()
+{
+	local base=reference-linaro-sauce-base-$upstream_base_version
+	local tip=reference-linaro-sauce-tip-$upstream_base_version
+
+	for c in $(git rev-list --reverse $base..$tip)
+	do
+		git cherry-pick $c
+	done
+}
+
+# tag with embedded meta data explaining origin of sauce
+#
+tag_sauce()
+{
+	local tagname="linaro-ubuntu-sauce"
+	tagname="$tagname-$(echo $upstream_tag | sed 's/v//')"
+	tagname="$tagname-$(date --utc +%Y.%m-%d%H%M)"
+	git tag -a -f "$tagname" -F - <<- _END_
+	Ubuntu sauce extracted from:
+	$(git log -1 --pretty="     %h%n     %s" $ubuntu_head)
+	Linaro sauce cherry picked from:
+	$(git log -1 --pretty="     %h%n     %s" reference-linaro-sauce-tip-$upstream_base_version)
+_END_
+	git branch -f new-sauce-$upstream_base_version
+	true
+}
+
+apply_squashed_ubuntu_packaging()
+{
+	git checkout $ubuntu_head -- debian debian.master
+	git commit -s -m "Ubuntu packaging extracted from: $(git log -1 --pretty="%h %s" $ubuntu_head)"
+	true
+}
+
+apply_linaro_packaging_patches()
+{
+	local base=reference-linaro-packaging-base-$upstream_base_version
+	local tip=reference-linaro-packaging-tip-$upstream_base_version
+
+	for c in $(git rev-list --reverse $base..$tip)
+	do
+		git cherry-pick $c
+	done
+}
+
+create_debian_linaro_omap_only()
+{
+	rsync -a -v debian.master/ debian.linaro/
+	rm -rf debian.linaro/d-i/* \
+		debian.linaro/abi \
+		debian.linaro/control.d/generic.inclusion-list \
+		debian.linaro/changelog.historical \
+		debian.linaro/NOTES
+	mkdir -p debian.linaro/d-i
+	echo "# dummy" > debian.linaro/d-i/package-list
+	head -1 debian.master/d-i/kernel-versions.in > debian.linaro/d-i/kernel-versions.in
+	grep omap debian.master/d-i/kernel-versions.in >> debian.linaro/d-i/kernel-versions.in
+	ls debian.linaro/rules.d/*.mk \
+		| grep -v arm \
+		| xargs rm
+	ls -d debian.linaro/config/* \
+		| grep -v 'arm\|config.common.ubuntu\|enforce' \
+		| xargs rm -rf
+	ls -d debian.linaro/config/*/*flavour* \
+		| grep -v omap \
+		| xargs rm -rf
+	ls debian.linaro/control.d/vars.* \
+		| grep -v omap \
+		| xargs rm 
+	for ts in skipmodule skipabi disable_d_i do_complete_flavour_headers do_timestamp_version skipconfig
+	do
+		echo -e "$ts\t= true" >> debian.linaro/rules.d/armel.mk
+		echo -e "$ts\t= true" >> debian.linaro/rules.d/armhf.mk
+	done
+	sed -i -e "s/flavours.*=.*/flavours = linaro-SOCFLAVOUR/" debian.linaro/rules.d/armel.mk
+	sed -i -e "s/flavours.*=.*/flavours = linaro-SOCFLAVOUR/" debian.linaro/rules.d/armhf.mk
+	sed -i -e 's/archs=".*arm.*$/archs="armel armhf"/' debian.linaro/etc/kernelconfig
+	git add debian.linaro
+	git commit -s -m "LINARO: debian.linaro omap flavour only based on debian.master"
+	true
+}
+
+print_vars_file()
+{
+	cat <<- __ENDVARS__
+		arch="armel armhf"
+		supported="SOCVENDOR SOCFAMILY"
+		desc="SOCVENDOR SOCFAMILY-based systems"
+		target="Targeted towards boards such as SAMPLEBOARDS, etc."
+		bootloader="uboot-mkimage, flash-kernel"
+		provides=""
+		section_image="universe/base"
+		do_debug="Yes"
+__ENDVARS__
+}
+
+create_debian_linaro_template_from_omap_only()
+{
+	# changelog
+	local version="$(echo $upstream_tag | sed -e 's/v//' -e 's/-rc.*//').0-1.1"
+	git rm debian.linaro/changelog
+	dch -c debian.linaro/changelog \
+		--create \
+		--package "linux-linaro-socflavour-$upstream_base_version" \
+		--newversion "$version" \
+		--empty
+	sed -i -e '1 s/socflavour/SOCFLAVOUR/' debian.linaro/changelog
+	dch -c debian.linaro/changelog  -a "==BODY=="
+	perl -i -pe "s#==BODY==#$(git log -1 --pretty="Packaging from Ubuntu:%n    Commit: %h%n    Subject: %s" HEAD)#" debian.linaro/changelog 
+	git add debian.linaro/changelog
+
+	# control stub
+	# delete sections we don't want
+	sed -i \
+		-e '/Package: SRCPKGNAME-source-PKGVER/,/^$/d' \
+		-e '/Package: linux-headers-PKGVER-ABINUM/,/^$/d' \
+		-e '/Package: SRCPKGNAME-libc-dev/,/^$/d' \
+		-e '/Package: .*-doc/,/^$/d' \
+			debian.linaro/control.stub.in
+	# always use uniq pkgname never just linux
+	sed -i \
+		-e '1 s/linux/SRCPKGNAME/' \
+		-e 's/linux-tools-common/SRCPKGNAME-tools-common/' \
+		-e 's/linux-tools-PKGVER/SRCPKGNAME-tools-PKGVER/' \
+		-e 's/Architecture:.*/Architecture: armel armhf/' \
+			debian.linaro/control.stub.in
+	git add debian.linaro/control.stub.in
+
+	# flavour control stub
+	# flavour headers are complete and do not depend on linux-headers
+	# which is gone
+	sed -i \
+		-e 's/SRCPKGNAME-headers-PKGVER-ABINUM, //' \
+			debian.linaro/control.d/flavour-control.stub
+	git add debian.linaro/control.d/flavour-control.stub
+
+	# config files
+	git rm	debian.linaro/config/armel/config.flavour.omap
+	git rm debian.linaro/config/armhf/config.flavour.omap
+	for cfg in \
+		debian.linaro/config/config.common.ubuntu \
+		debian.linaro/config/armel/config.common.armel \
+		debian.linaro/config/armhf/config.common.armhf \
+		debian.linaro/config/armel/config.flavour.linaro-SOCFLAVOUR \
+		debian.linaro/config/armhf/config.flavour.linaro-SOCFLAVOUR
+	do
+		echo "# nothing here yet" > $cfg
+		git add $cfg
+	done
+
+	# vars
+	git rm debian.linaro/control.d/vars.omap
+	print_vars_file > debian.linaro/control.d/vars.linaro-SOCFLAVOUR
+	git add debian.linaro/control.d/vars.linaro-SOCFLAVOUR
+
+	# misc
+	for f in \
+		debian.linaro/d-i/kernel-versions.in \
+		debian.linaro/rules.d/armel.mk \
+		debian.linaro/rules.d/armhf.mk
+	do
+		sed -i -e 's/omap/linaro-SOCFLAVOUR/g' $f
+		git add $f
+	done
+	git commit -s -m "LINARO: template debian.linaro based on omap only version"
+	true
+}
+
+tag_packaging_template()
+{
+	local tagname="linaro-ubuntu-packaging"
+	tagname="$tagname-$(echo $upstream_tag | sed 's/v//')"
+	tagname="$tagname-$(date --utc +%Y.%m-%d%H%M)"
+	git tag -a -f "$tagname" -F - <<- _END_
+	Linaro packaging auto generated from:
+	$(git log -1 --pretty="     %h%n     %s" $ubuntu_head)
+_END_
+	git branch -f new-packaging-$upstream_base_version
+	true
+}
+
+export scriptname=$(basename $0)
+trap cleanup EXIT
+
+# process command line arguments
+#
+while (( $# > 0 )) ; do
+	echo arg is $1
+	case $1 in
+		-b|--workingbranch)
+			workingbranch=$2
+			shift
+			;;
+		-f|--fullauto)
+			fullauto="true"
+			;;
+		-k|--keeptempbranches)
+			keeptmpbranches="true"
+			;;
+		-o|--overwrite)
+			overwriteok="true"
+			;;
+		-v|--verbose)
+			verbose="true"
+			;;
+		-h|--help|-?)
+			usage
+			;;
+		*=*)
+			echo $1
+			eval $1
+			;;
+	esac
+	shift
+done
+
+test "$fullauto" = "true" &&
+	full_auto_init
+get_commit_info
+dump_patches
+prepare_working_branch
+process_first_ubuntu_patch
+process_remaining_patches
+apply_sauce_patches
+apply_linaro_sauce_patches
+tag_sauce
+apply_squashed_ubuntu_packaging
+apply_linaro_packaging_patches
+create_debian_linaro_omap_only
+create_debian_linaro_template_from_omap_only
+tag_packaging_template
+
+exit 0

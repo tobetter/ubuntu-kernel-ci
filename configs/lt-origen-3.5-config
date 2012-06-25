@@ -1,0 +1,14 @@
+#!/bin/bash
+echo "export kernel_repo=git://git.linaro.org/landing-teams/working/samsung/kernel.git"
+echo "export kernel_branch=tracking"
+echo "export linaro_ubuntu_packaging_repo=git://git.linaro.org/ubuntu/linux-linaro-quantal.git"
+echo "export linaro_ubuntu_packaging_branch=linaro-ubuntu-packaging-3.5"
+echo "export SOCFLAVOUR=lt-origen"
+echo "export SOCVENDOR=Samsung"
+echo "export SOCFAMILY=ORIGEN"
+echo "export SAMPLEBOARDS=origen"
+# this can be remote as well its just the first repo cloned to prime the pump
+echo "export nearby_git=/home/jcrigby/work/git-trees/linaro-q/linaro-q/.git"
+echo "export linaroconfigsboardflavour=origen"
+echo "export distribution=precise"
+

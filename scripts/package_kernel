@@ -1,0 +1,232 @@
+#!/bin/bash
+
+set -x
+set -e
+shopt -s extglob
+
+# exit with error message and bad exit status
+#
+carp()
+{
+	echo $1
+	exit -1
+}
+
+# exit with message and good exit status
+#
+infoexit()
+{
+	echo -e $1
+	exit 0
+}
+
+# echo message if being verbose
+#
+verbose_info()
+{
+	test "$verbose" && echo $1
+	true
+}
+
+# when finished mv the kernel back up
+#
+cleanup()
+{
+	echo nothing to do
+}
+
+# help -- duh
+#
+usage()
+{
+	echo hmmm
+}
+
+pvar()
+{
+	verbose_info "$1 = $(eval "echo \$$1")"
+}
+
+fdr()
+{
+	fakeroot ./debian/rules $@
+}
+
+must_be_set()
+{
+	local varname=$1
+	local varvalue=$(eval "echo \$$1")
+	test "$varvalue" || carp "$varname must be set in env"
+}
+
+check_settings()
+{
+	must_be_set "kernel_repo"
+	must_be_set "kernel_branch"
+	must_be_set "linaro_ubuntu_packaging_repo"
+	must_be_set "linaro_ubuntu_packaging_branch"
+	: ${board_config_repo:=$kernel_repo}
+	: ${board_config_branch:=$kernel_branch}
+	: ${ubuntu_and_base_config_repo:=$kernel_repo}
+	: ${ubuntu_and_base_config_branch:=$kernel_branch}
+	must_be_set "distribution"
+	must_be_set "SOCFLAVOUR"
+	must_be_set "SOCVENDOR"
+	must_be_set "SOCFAMILY"
+	must_be_set "SAMPLEBOARDS"
+	: ${third_version_digit:=0}
+}
+
+setup_kernel_git()
+{
+	test -d kernel_build || {
+		mkdir -p kernel_build
+		git clone -b $kernel_branch $nearby_git kernel_build 
+	}
+	cd kernel_build
+	for r in $(git remote)
+	do
+		git remote rm $r
+	done
+	kernel_desc="Kernel"
+	ubuntu_and_base_config_desc="Ubuntu and Linaro Base config fragments"
+	board_config_desc="Board config fragment"
+	linaro_ubuntu_packaging_desc="Packaging template"
+	git remote add -t $kernel_branch kernel_remote $kernel_repo
+	git remote add -t $linaro_ubuntu_packaging_branch \
+		linaro_ubuntu_packaging_remote \
+		$linaro_ubuntu_packaging_repo
+	git remote add -t $board_config_branch \
+		board_config_remote \
+		$board_config_repo
+	git remote add -t $ubuntu_and_base_config_branch \
+		ubuntu_and_base_config_remote \
+		$ubuntu_and_base_config_repo
+	git remote update
+	git checkout -f working_branch ||
+	git checkout -b working_branch \
+		remotes/kernel_remote/$kernel_branch
+	git reset --hard remotes/kernel_remote/$kernel_branch
+	git checkout remotes/linaro_ubuntu_packaging_remote/$linaro_ubuntu_packaging_branch \
+		-- \
+		debian \
+		debian.linaro
+	git checkout remotes/board_config_remote/$board_config_branch \
+		-- \
+		linaro/configs
+	git checkout remotes/ubuntu_and_base_config_remote/$ubuntu_and_base_config_branch \
+		-- \
+		linaro/configs
+	git commit -s -m "added packaging template and linaro/configs"
+}
+
+fixup_socflavour_contents()
+{
+	for f in $(grep -r -l SOCFLAVOUR debian.linaro/)
+	do
+		sed -i -e "s/SOCFLAVOUR/$SOCFLAVOUR/g" $f
+		git add $f
+	done
+}
+
+fixup_socflavour_filenames()
+{
+	for f in $(find debian.linaro/ -type f -name '*SOCFLAVOUR*')
+	do
+		nf=$(echo $f | sed "s/SOCFLAVOUR/$SOCFLAVOUR/")
+		git mv $f $nf
+	done
+}
+
+fixup_vars_file()
+{
+	f=debian.linaro/control.d/vars.linaro-$SOCFLAVOUR
+	sed -i \
+		-e "s/SOCFLAVOUR/$SOCFLAVOUR/g" \
+		-e "s/SOCVENDOR/$SOCVENDOR/g" \
+		-e "s/SOCFAMILY/$SOCFAMILY/g" \
+		-e "s/SAMPLEBOARDS/$SAMPLEBOARDS/g" \
+		$f
+	git add $f
+}
+
+add_config()
+{
+	: ${linaroconfigsboardflavour:=$(echo $SOCFLAVOUR | sed s/lt-//)}
+	ARCH=arm ./scripts/kconfig/merge_config.sh \
+		linaro/configs/linaro-base.conf \
+		linaro/configs/ubuntu.conf \
+		linaro/configs/$linaroconfigsboardflavour.conf 
+	cp .config debian.linaro/config/armel/config.flavour.linaro-$SOCFLAVOUR
+	cp .config debian.linaro/config/armhf/config.flavour.linaro-$SOCFLAVOUR
+	fdr clean
+	fdr updateconfigs
+	git add debian.linaro/config
+}
+
+sourceinfo()
+{
+	for r in \
+		kernel \
+		board_config \
+		ubuntu_and_base_config \
+		linaro_ubuntu_packaging
+	do
+		echo
+		eval "echo \$${r}_desc:"
+		eval "echo Repo: \$${r}_repo"
+		eval "echo Branch: \$${r}_branch"
+		echo "Head:"
+		git log -1 $(eval "echo ${r}_remote/\$${r}_branch") \
+			| sed 's/^/    /'
+	done | sed 's/^/    /'
+}
+
+finish()
+{
+	dch -c debian.linaro/changelog -t \
+		"Packaged version of $SOCFLAVOUR kernel created from:==BODY=="
+	perl -i -pe "s#==BODY==#$(sourceinfo)#" \
+		debian.linaro/changelog
+	sed -i \
+		-e "1 s/)/~$(date --utc +%y%m%d%H%M%S))/" \
+		-e "s/UNRELEASED/$distribution/" \
+		debian.linaro/changelog
+	sed -i \
+		-e '/Packaging from Ubuntu/,/Subject: LINARO: debian.linaro omap/d' \
+			debian.linaro/changelog
+	git add debian.linaro/changelog
+	git commit -s -m "LINARO: instantiate packaging template for $SOCFLAVOUR"
+	git clean -d -f -x
+	git reset --hard HEAD
+	true
+}
+
+export scriptname=$(basename $0)
+trap cleanup EXIT
+
+# process command line arguments
+#
+while (( $# > 0 )) ; do
+	echo arg is $1
+	case $1 in
+		-h|--help|-?)
+			usage
+			;;
+		*=*)
+			echo $1
+			eval $1
+			;;
+	esac
+	shift
+done
+
+check_settings
+setup_kernel_git
+fixup_socflavour_contents
+fixup_socflavour_filenames
+fixup_vars_file
+add_config
+finish
+
+exit 0
