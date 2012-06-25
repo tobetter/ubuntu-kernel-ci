@@ -1,0 +1,18 @@
+#!/bin/bash
+# clear all package_config settings
+cat << __end__
+unset board_config_branch
+unset distribution
+unset kernel_branch
+unset kernel_repo
+unset linaroconfigsboardflavour
+unset linaro_ubuntu_packaging_branch
+unset linaro_ubuntu_packaging_repo
+unset nearby_git
+unset SAMPLEBOARDS
+unset SOCFAMILY
+unset SOCFLAVOUR
+unset SOCVENDOR
+unset ubuntu_and_base_config_branch
+unset ubuntu_and_base_config_repo
+__end__
