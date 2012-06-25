@@ -320,9 +320,11 @@ create_debian_linaro_template_from_omap_only()
 		--newversion "$version" \
 		--empty
 	sed -i -e '1 s/socflavour/SOCFLAVOUR/' debian.linaro/changelog
-	dch -c debian.linaro/changelog  -a "==BODY=="
-	perl -i -pe "s#==BODY==#$(git log -1 --pretty="Packaging from Ubuntu:%n    Commit: %h%n    Subject: %s" HEAD)#" debian.linaro/changelog 
 	git add debian.linaro/changelog
+
+	sed -i -e 's/^tools_pkg_name=.*/tools_pkg_name=linux-linaro-tools-$(abi_release)-linaro-SOCFLAVOUR/' \
+		debian/rules.d/0-common-vars.mk
+	git add debian/rules.d/0-common-vars.mk
 
 	# control stub
 	# delete sections we don't want
@@ -331,12 +333,11 @@ create_debian_linaro_template_from_omap_only()
 		-e '/Package: linux-headers-PKGVER-ABINUM/,/^$/d' \
 		-e '/Package: SRCPKGNAME-libc-dev/,/^$/d' \
 		-e '/Package: .*-doc/,/^$/d' \
+		-e '/Package: .*-tools-common/,/^$/d' \
 			debian.linaro/control.stub.in
-	# always use uniq pkgname never just linux
 	sed -i \
 		-e '1 s/linux/SRCPKGNAME/' \
-		-e 's/linux-tools-common/SRCPKGNAME-tools-common/' \
-		-e 's/linux-tools-PKGVER/SRCPKGNAME-tools-PKGVER/' \
+		-e 's/linux-tools-PKGVER-ABINUM/linux-linaro-tools-PKGVER-ABINUM-linaro-SOCFLAVOUR/' \
 		-e 's/Architecture:.*/Architecture: armel armhf/' \
 			debian.linaro/control.stub.in
 	git add debian.linaro/control.stub.in

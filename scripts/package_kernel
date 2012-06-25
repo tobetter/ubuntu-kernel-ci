@@ -122,10 +122,10 @@ setup_kernel_git()
 
 fixup_socflavour_contents()
 {
-	for f in $(grep -r -l SOCFLAVOUR debian.linaro/)
+	for f in $(grep -r -l SOCFLAVOUR debian.linaro/) debian/rules.d/0-common-vars.mk
 	do
 		sed -i -e "s/SOCFLAVOUR/$SOCFLAVOUR/g" $f
-		git add $f
+		git add -f $f
 	done
 }
 
@@ -192,9 +192,6 @@ finish()
 		-e "1 s/)/~$(date --utc +%y%m%d%H%M%S))/" \
 		-e "s/UNRELEASED/$distribution/" \
 		debian.linaro/changelog
-	sed -i \
-		-e '/Packaging from Ubuntu/,/Subject: LINARO: debian.linaro omap/d' \
-			debian.linaro/changelog
 	git add debian.linaro/changelog
 	git commit -s -m "LINARO: instantiate packaging template for $SOCFLAVOUR"
 	git clean -d -f -x
