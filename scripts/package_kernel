@@ -81,7 +81,7 @@ setup_kernel_git()
 {
 	test -d kernel_build || {
 		mkdir -p kernel_build
-		git clone -b $kernel_branch $nearby_git kernel_build 
+		git clone -b $kernel_branch $nearby_git kernel_build
 	}
 	cd kernel_build
 	for r in $(git remote)
@@ -113,10 +113,11 @@ setup_kernel_git()
 		debian.linaro
 	git checkout remotes/board_config_remote/$board_config_branch \
 		-- \
-		linaro/configs
+		linaro/configs/$linaroconfigsboardflavour.conf
 	git checkout remotes/ubuntu_and_base_config_remote/$ubuntu_and_base_config_branch \
 		-- \
-		linaro/configs
+		linaro/configs/linaro-base.conf \
+		linaro/configs/ubuntu.conf
 	git commit -s -m "added packaging template and linaro/configs"
 }
 
@@ -156,7 +157,7 @@ add_config()
 	ARCH=arm ./scripts/kconfig/merge_config.sh \
 		linaro/configs/linaro-base.conf \
 		linaro/configs/ubuntu.conf \
-		linaro/configs/$linaroconfigsboardflavour.conf 
+		linaro/configs/$linaroconfigsboardflavour.conf
 	cp .config debian.linaro/config/armel/config.flavour.linaro-$SOCFLAVOUR
 	cp .config debian.linaro/config/armhf/config.flavour.linaro-$SOCFLAVOUR
 	fdr clean
