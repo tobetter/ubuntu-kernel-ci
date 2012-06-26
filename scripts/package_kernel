@@ -65,10 +65,10 @@ check_settings()
 	must_be_set "kernel_branch"
 	must_be_set "linaro_ubuntu_packaging_repo"
 	must_be_set "linaro_ubuntu_packaging_branch"
-	: ${board_config_repo:=$kernel_repo}
-	: ${board_config_branch:=$kernel_branch}
-	: ${ubuntu_and_base_config_repo:=$kernel_repo}
-	: ${ubuntu_and_base_config_branch:=$kernel_branch}
+	must_be_set "board_config_repo"
+	must_be_set "board_config_branch"
+	must_be_set "ubuntu_and_base_config_repo"
+	must_be_set "ubuntu_and_base_config_branch"
 	must_be_set "distribution"
 	must_be_set "SOCFLAVOUR"
 	must_be_set "SOCVENDOR"
