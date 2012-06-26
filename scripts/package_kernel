@@ -107,6 +107,9 @@ setup_kernel_git()
 	git checkout -b working_branch \
 		remotes/kernel_remote/$kernel_branch
 	git reset --hard remotes/kernel_remote/$kernel_branch
+	git clean -d -f -x
+	test -d debian && git rm -r debian
+	test -d debian.linaro && git rm -r debian.linaro
 	git checkout remotes/linaro_ubuntu_packaging_remote/$linaro_ubuntu_packaging_branch \
 		-- \
 		debian \
