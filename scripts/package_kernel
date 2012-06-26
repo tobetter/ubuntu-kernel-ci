@@ -161,7 +161,7 @@ add_config()
 	cp .config debian.linaro/config/armel/config.flavour.linaro-$SOCFLAVOUR
 	cp .config debian.linaro/config/armhf/config.flavour.linaro-$SOCFLAVOUR
 	fdr clean
-	fdr updateconfigs
+	fdr defaultconfigs
 	git add debian.linaro/config
 }
 
