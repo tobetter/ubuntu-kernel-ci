@@ -74,6 +74,9 @@ check_settings()
 	must_be_set "SOCVENDOR"
 	must_be_set "SOCFAMILY"
 	must_be_set "SAMPLEBOARDS"
+	: ${linaro_base_config_frag:="linaro/configs/linaro-base.conf"}
+	: ${ubuntu_config_frag:="linaro/configs/ubuntu.conf"}
+	: ${board_config_frag:="linaro/configs/$(echo $SOCFLAVOUR | sed s/lt-//).conf"}
 	: ${third_version_digit:=0}
 }
 
@@ -89,16 +92,18 @@ setup_kernel_git()
 		git remote rm $r
 	done
 	kernel_desc="Kernel"
-	ubuntu_and_base_config_desc="Ubuntu and Linaro Base config fragments"
-	board_config_desc="Board config fragment"
+	git remote add -t $kernel_branch \
+		kernel_remote \
+		$kernel_repo
 	linaro_ubuntu_packaging_desc="Packaging template"
-	git remote add -t $kernel_branch kernel_remote $kernel_repo
 	git remote add -t $linaro_ubuntu_packaging_branch \
 		linaro_ubuntu_packaging_remote \
 		$linaro_ubuntu_packaging_repo
+	board_config_desc="Board config fragment"
 	git remote add -t $board_config_branch \
 		board_config_remote \
 		$board_config_repo
+	ubuntu_and_base_config_desc="Ubuntu and Linaro Base config fragments"
 	git remote add -t $ubuntu_and_base_config_branch \
 		ubuntu_and_base_config_remote \
 		$ubuntu_and_base_config_repo
@@ -116,11 +121,11 @@ setup_kernel_git()
 		debian.linaro
 	git checkout remotes/board_config_remote/$board_config_branch \
 		-- \
-		linaro/configs/$linaroconfigsboardflavour.conf
+		$board_config_frag
 	git checkout remotes/ubuntu_and_base_config_remote/$ubuntu_and_base_config_branch \
 		-- \
-		linaro/configs/linaro-base.conf \
-		linaro/configs/ubuntu.conf
+		$linaro_base_config_frag \
+		$ubuntu_config_frag
 	git commit -s -m "added packaging template and linaro/configs"
 }
 
@@ -158,9 +163,9 @@ add_config()
 {
 	: ${linaroconfigsboardflavour:=$(echo $SOCFLAVOUR | sed s/lt-//)}
 	ARCH=arm ./scripts/kconfig/merge_config.sh \
-		linaro/configs/linaro-base.conf \
-		linaro/configs/ubuntu.conf \
-		linaro/configs/$linaroconfigsboardflavour.conf
+		$linaro_base_config_frag \
+		$ubuntu_config_frag \
+		$board_config_frag
 	cp .config debian.linaro/config/armel/config.flavour.linaro-$SOCFLAVOUR
 	cp .config debian.linaro/config/armhf/config.flavour.linaro-$SOCFLAVOUR
 	fdr clean
@@ -180,6 +185,17 @@ sourceinfo()
 		eval "echo \$${r}_desc:"
 		eval "echo Repo: \$${r}_repo"
 		eval "echo Branch: \$${r}_branch"
+		case $r in
+			board_config)
+				echo "Config frag:"
+				echo "  $board_config_frag"
+				;;
+			ubuntu_and_base_config)
+				echo "Config frags:"
+				echo "  $linaro_base_config_frag"
+				echo "  $ubuntu_config_frag"
+				;;
+		esac
 		echo "Head:"
 		git log -1 $(eval "echo ${r}_remote/\$${r}_branch") \
 			| sed 's/^/    /'
