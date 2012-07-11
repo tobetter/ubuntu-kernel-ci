@@ -1,8 +1,6 @@
 #!/bin/bash
-echo "export board_config_branch=config-boards-tracking"
-echo "export board_config_repo=git://git.linaro.org/kernel/configs.git"
 echo "export distribution=precise"
-echo "export kernel_branch=integration-linux-vexpress"
+echo "export kernel_branch=integration-ubuntu-vexpress"
 echo "export kernel_repo=git://git.linaro.org/landing-teams/working/arm/kernel.git"
 echo "export linaroconfigsboardflavour=vexpress"
 echo "export linaro_ubuntu_packaging_branch=linaro-ubuntu-packaging-3.5"
