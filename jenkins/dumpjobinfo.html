@@ -65,8 +65,8 @@ if (goodkernel) {
 	document.writeln('Kernel Packaging and Publishing Job for unknown kernel: "' + kernel_name + '"');
 	document.writeln('kernel name is:');
 	document.writeln('  set via name=kernelname in iframe in project description');
-	document.writeln('  or');
-	document.writeln('  guessed from jenkins project name');
+	document.writeln('    or');
+	document.writeln('  guessed from jenkins project name by removing everthing upto and including 'linux-linaro'');
 }
 </script>
 </pre>
