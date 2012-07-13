@@ -1,8 +1,11 @@
 #!/bin/bash
-
 set -x
 set -e
 shopt -s extglob
+
+# add directory containing this script to PATH
+#
+export PATH="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )":$PATH
 
 # exit with error message and bad exit status
 #
@@ -10,6 +13,14 @@ carp()
 {
 	echo $1
 	exit -1
+}
+
+# warn about something but do not exit
+#
+warn()
+{
+	echo "WARNING: $1"
+	true
 }
 
 # exit with message and good exit status
@@ -28,15 +39,11 @@ verbose_info()
 	true
 }
 
-# when finished mv the kernel back up
-#
 cleanup()
 {
 	echo nothing to do
 }
 
-# help -- duh
-#
 usage()
 {
 	echo hmmm
@@ -44,7 +51,7 @@ usage()
 
 pvar()
 {
-	verbose_info "$1 = $(eval "echo \$$1")"
+	verbose_info "$1 = ${!1}"
 }
 
 fdr()
@@ -54,9 +61,13 @@ fdr()
 
 must_be_set()
 {
-	local varname=$1
-	local varvalue=$(eval "echo \$$1")
-	test "$varvalue" || carp "$varname must be set in env"
+	test "${!1}" || carp "$1 must be set in env"
+}
+
+should_be_set()
+{
+	test "${!1}" || warn "$1 should be set "\
+	       "using default ${!2} from $2"
 }
 
 check_settings()
@@ -65,8 +76,6 @@ check_settings()
 	must_be_set "kernel_branch"
 	must_be_set "linaro_ubuntu_packaging_repo"
 	must_be_set "linaro_ubuntu_packaging_branch"
-	must_be_set "board_config_repo"
-	must_be_set "board_config_branch"
 	must_be_set "ubuntu_and_base_config_repo"
 	must_be_set "ubuntu_and_base_config_branch"
 	must_be_set "distribution"
@@ -74,6 +83,10 @@ check_settings()
 	must_be_set "SOCVENDOR"
 	must_be_set "SOCFAMILY"
 	must_be_set "SAMPLEBOARDS"
+
+	should_be_set "board_config_repo" "kernel_repo"
+	should_be_set "board_config_branch" "kernel_branch"
+
 	: ${linaro_base_config_frag:="linaro/configs/linaro-base.conf"}
 	: ${ubuntu_config_frag:="linaro/configs/ubuntu.conf"}
 	: ${board_config_frag:="linaro/configs/$(echo $SOCFLAVOUR | sed s/lt-//).conf"}
@@ -181,10 +194,14 @@ sourceinfo()
 		ubuntu_and_base_config \
 		linaro_ubuntu_packaging
 	do
+		desc=${r}_desc
+		repo=${r}_repo
+		branch=${r}_branch
+		remote=${r}_remote
 		echo
-		eval "echo \$${r}_desc:"
-		eval "echo Repo: \$${r}_repo"
-		eval "echo Branch: \$${r}_branch"
+		echo "${!desc}:"
+		echo "Repo: ${!repo}:"
+		echo "Branch: ${!branch}:"
 		case $r in
 			board_config)
 				echo "Config frag:"
@@ -197,8 +214,7 @@ sourceinfo()
 				;;
 		esac
 		echo "Head:"
-		git log -1 $(eval "echo ${r}_remote/\$${r}_branch") \
-			| sed 's/^/    /'
+		git log -1 "${!remote}/${!branch}" | sed 's/^/    /'
 	done | sed 's/^/    /'
 }
 
@@ -230,9 +246,13 @@ while (( $# > 0 )) ; do
 		-h|--help|-?)
 			usage
 			;;
-		*=*)
-			echo $1
-			eval $1
+		--config)
+			echo "sourcing $2"
+			source $2
+			shift
+			;;
+		+([[:alpha:]_])*([[:word:]])=+([[:word:]:/]))
+			eval "export $1"
 			;;
 	esac
 	shift

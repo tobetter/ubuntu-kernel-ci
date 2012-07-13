@@ -6,6 +6,13 @@
 <pre style="padding:0 0 0 10;">
 <script type="text/javascript">
 kernel_name=window.name;
+if (!kernel_name) {
+	kernel_name=window.parent.document.title;
+	kernel_name=kernel_name.split(' ')[0];
+	t=kernel_name.split('linux-linaro-')[1];
+	if (t)
+		kernel_name=t;
+}
 goodkernel=true;
 switch (kernel_name) {
 case "lt-omap-3.4":
@@ -55,7 +62,11 @@ if (goodkernel) {
 	document.writeln('  PPA: <a target="_blank" href=' + ppaurl + '>' + ppaname + '</a>');
 	document.writeln('  Maintainer: <a target="_blank" href=' + maintainermail + '>' + maintainername + '</a>');
 } else {
-	document.writeln('Kernel Packaging and Publishing Job for unknown kernel:' + kernel_name);
+	document.writeln('Kernel Packaging and Publishing Job for unknown kernel: "' + kernel_name + '"');
+	document.writeln('kernel name is:');
+	document.writeln('  set via name=kernelname in iframe in project description');
+	document.writeln('  or');
+	document.writeln('  guessed from jenkins project name');
 }
 </script>
 </pre>
