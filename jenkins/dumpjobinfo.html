@@ -1,0 +1,63 @@
+<head>
+<link rel="stylesheet" type="text/css" href="http://www.linaro.org/remote/css/init.css">
+<link rel="stylesheet" type="text/css" href="http://www.linaro.org/remote/css/remote.css"></head>
+<body>
+<div id="content">
+<pre style="padding:0 0 0 10;">
+<script type="text/javascript">
+kernel_name=window.name;
+goodkernel=true;
+switch (kernel_name) {
+case "lt-omap-3.4":
+	kernel_repo="git://git.linaro.org/landing-teams/working/ti/kernel.git";
+	kernel_branch="tilt-3.4";
+	board_config_repo="git://git.linaro.org/kernel/configs.git";
+	board_config_branch="config-boards-3.4";
+	ubuntu_and_base_config_repo="git://git.linaro.org/kernel/configs.git";
+	ubuntu_and_base_config_branch="config-core-3.4";
+	board_config_frag="linaro/configs/omap4.conf";
+	linaro_ubuntu_packaging_repo="git://git.linaro.org/ubuntu/linux-linaro-quantal.git";
+	linaro_ubuntu_packaging_branch="linaro-ubuntu-packaging-3.4";
+	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
+	ppaname="Linaro Kernel PPA";
+	maintainermail="mailto:john.rigby@linaro.org"
+	maintainername="John Rigby"
+	break;
+case "ltt-omap-3.4":
+	kernel_repo="git://git.linaro.org/landing-teams/working/ti/kernel.git";
+	kernel_branch="tilt-3.4";
+	board_config_repo="git://git.linaro.org/kernel/configs.git";
+	board_config_branch="config-boards-3.4";
+	ubuntu_and_base_config_repo="git://git.linaro.org/kernel/configs.git";
+	ubuntu_and_base_config_branch="config-core-3.4";
+	board_config_frag="linaro/configs/omap4.conf";
+	linaro_ubuntu_packaging_repo="git://git.linaro.org/ubuntu/linux-linaro-quantal.git";
+	linaro_ubuntu_packaging_branch="linaro-ubuntu-packaging-3.4";
+	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
+	ppaname="Linaro Kernel PPA";
+	maintainermail="mailto:john.rigby@linaro.org"
+	maintainername="John Rigby"
+	break;
+default:
+	goodkernel=false;
+}
+if (goodkernel) {
+	document.writeln('Kernel Packaging and Publishing Job for ' + kernel_name);
+	document.writeln('  Kernel repo: ' + kernel_repo);
+	document.writeln('  Kernel branch: ' + kernel_branch);
+	document.writeln('  Board config repo: ' + board_config_repo);
+	document.writeln('  Board config branch: ' + board_config_branch);
+	document.writeln('  Board config frag: ' + board_config_frag);
+	document.writeln('  Ubuntu and base config repo: ' + ubuntu_and_base_config_repo);
+	document.writeln('  Ubuntu and base config branch: ' + ubuntu_and_base_config_branch);
+	document.writeln('  Linaro ubuntu packaging repo: ' + linaro_ubuntu_packaging_repo);
+	document.writeln('  Linaro ubuntu packaging branch: ' + linaro_ubuntu_packaging_branch);
+	document.writeln('  PPA: <a target="_blank" href=' + ppaurl + '>' + ppaname + '</a>');
+	document.writeln('  Maintainer: <a target="_blank" href=' + maintainermail + '>' + maintainername + '</a>');
+} else {
+	document.writeln('Kernel Packaging and Publishing Job for unknown kernel:' + kernel_name);
+}
+</script>
+</pre>
+</div>
+</body>
