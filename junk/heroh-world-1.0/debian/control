@@ -1,0 +1,14 @@
+Source: heroh-world
+Section: devel
+Priority: extra
+Maintainer: John Rigby <john.rigby@linaro.org>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.2
+#Vcs-Git: git://git.debian.org/collab-maint/heroh-world.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/heroh-world.git;a=summary
+
+Package: heroh-world
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
