@@ -5,7 +5,8 @@ shopt -s extglob
 
 # add directory containing this script to PATH
 #
-export PATH="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )":$PATH
+export CIROOTDIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+export PATH="$CIROOTDIR/scripts:$CIROOTDIR/configs:$PATH"
 
 # exit with error message and bad exit status
 #
@@ -41,12 +42,12 @@ verbose_info()
 
 cleanup()
 {
-	echo nothing to do
+	:
 }
 
 usage()
 {
-	echo "package_kernel var=bar0 -c pkgingconfig.cfg [-c pkg.cfg] var=bar1"
+	echo "package_kernel var=bar0 --cfg pkgingconfig.cfg [-c pkg.cfg] var=bar1"
 	echo "set vars with var=value later settings will override earlier onces"
 	echo "or use config files these are sourced and do not need full path if"
 	echo "they are in PATH and executable"
@@ -97,15 +98,16 @@ check_settings()
 	: ${third_version_digit:=0}
 }
 
-# NB - Everthing from here runs in kernel_build
+#
+# NB - Everthing from here until noted in kernel_build
 #
 setup_kernel_git()
 {
-	test -d kernel_build || {
-		mkdir -p kernel_build
-		git clone -b $kernel_branch $nearby_git kernel_build
+	test -d kernel_build/linux || {
+		mkdir -p kernel_build/linux
+		git clone $nearby_git kernel_build/linux
 	}
-	cd kernel_build
+	cd kernel_build/linux
 	for r in $(git remote)
 	do
 		git remote rm $r
@@ -220,15 +222,15 @@ sourceinfo()
 				;;
 		esac
 		echo "Head:"
-		git log -1 "${!remote}/${!branch}" | sed 's/^/    /'
-	done | sed 's/^/    /'
+		git log -1 "${remote}/${!branch}" | sed 's/^/    /'
+	done
 }
 
-finish()
+finish_changelog()
 {
 	dch -c debian.linaro/changelog -t \
 		"Packaged version of $SOCFLAVOUR kernel created from:==BODY=="
-	perl -i -pe "s#==BODY==#$(sourceinfo)#" \
+	perl -i -pe "s#==BODY==#$(sourceinfo | sed 's/^/    /')#" \
 		debian.linaro/changelog
 	sed -i \
 		-e "1 s/)/~ci+$(date --utc +%y%m%d%H%M%S))/" \
@@ -241,16 +243,25 @@ finish()
 	true
 }
 
+create_source_pkg()
+{
+	fdr clean
+	debuild --no-lintian -sa -S $keyarg -I -i -aarmhf
+}
+
 export scriptname=$(basename $0)
 trap cleanup EXIT
+
+keyarg=""
 
 # process command line arguments
 #
 while (( $# > 0 )) ; do
 	echo arg is $1
 	case $1 in
-		-h|--help|-?)
-			usage
+		-k)
+			keyarg="-k$2"
+			shift
 			;;
 		--cfg)
 			echo "sourcing $2"
@@ -260,16 +271,24 @@ while (( $# > 0 )) ; do
 		+([[:alpha:]_])*([[:word:]])=+([[:word:]:/]))
 			eval "export $1"
 			;;
+		-h|--help|-?)
+			usage
+			;;
+		*)
+			usage
+			;;
 	esac
 	shift
 done
 
 check_settings
-setup_kernel_git
-fixup_socflavour_contents
-fixup_socflavour_filenames
-fixup_vars_file
-add_config
-finish
+setup_kernel_git 	# cd's to kernel_build/linux
+	fixup_socflavour_contents
+	fixup_socflavour_filenames
+	fixup_vars_file
+	add_config
+	finish_changelog
+	create_source_pkg
+	cd ../..
 
 exit 0
