@@ -268,7 +268,7 @@ while (( $# > 0 )) ; do
 			source $2
 			shift
 			;;
-		+([[:alpha:]_])*([[:word:]])=+([[:word:]:/]))
+		+([[:alpha:]_])*([[:word:]])=+([-[:word:]:/.]))
 			eval "export $1"
 			;;
 		-h|--help|-?)
