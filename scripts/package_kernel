@@ -97,6 +97,8 @@ check_settings()
 	: ${third_version_digit:=0}
 }
 
+# NB - Everthing from here runs in kernel_build
+#
 setup_kernel_git()
 {
 	test -d kernel_build || {
@@ -229,7 +231,7 @@ finish()
 	perl -i -pe "s#==BODY==#$(sourceinfo)#" \
 		debian.linaro/changelog
 	sed -i \
-		-e "1 s/)/~$(date --utc +%y%m%d%H%M%S))/" \
+		-e "1 s/)/~ci+$(date --utc +%y%m%d%H%M%S))/" \
 		-e "s/UNRELEASED/$distribution/" \
 		debian.linaro/changelog
 	git add debian.linaro/changelog
