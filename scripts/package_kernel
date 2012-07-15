@@ -99,10 +99,16 @@ check_settings()
 }
 
 #
-# NB - Everthing from here until noted in kernel_build
+# NB - Everything from here until noted runs in kernel_build/linux directory
 #
 setup_kernel_git()
 {
+	test -d kernel_build/linux && {
+		mkdir new_kernel_build
+		mv kernel_build/linux new_kernel_build
+		rm -rf kernel_build
+		mv new_kernel_build kernel_build
+	}
 	test -d kernel_build/linux || {
 		mkdir -p kernel_build/linux
 		git clone $nearby_git kernel_build/linux
@@ -249,6 +255,20 @@ create_source_pkg()
 	debuild --no-lintian -sa -S $keyarg -I -i -aarmhf
 }
 
+#
+# NB from here we are running in kernel_build
+#
+test_build_source_pkg()
+{
+	mkdir -p test_build
+	cd test_build
+	dpkg-source -x ../*.dsc linux
+	cd linux
+ 	time debuild -j4 -us -uc -b -aarmhf
+	ls
+}
+
+
 export scriptname=$(basename $0)
 trap cleanup EXIT
 
@@ -289,6 +309,7 @@ setup_kernel_git 	# cd's to kernel_build/linux
 	add_config
 	finish_changelog
 	create_source_pkg
-	cd ../..
+	cd ..		# now in kernel_build
+	test_build_source_pkg
 
 exit 0
