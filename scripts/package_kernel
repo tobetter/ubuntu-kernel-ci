@@ -265,7 +265,12 @@ test_build_source_pkg()
 	dpkg-source -x ../*.dsc linux
 	cd linux
  	time debuild -j4 -us -uc -b -aarmhf
-	ls
+	cd ../..
+}
+
+publish_source_pkg()
+{
+	dput ppa:linaro-maintainers/kernel *.changes
 }
 
 
@@ -303,13 +308,14 @@ done
 
 check_settings
 setup_kernel_git 	# cd's to kernel_build/linux
-	fixup_socflavour_contents
-	fixup_socflavour_filenames
-	fixup_vars_file
-	add_config
-	finish_changelog
-	create_source_pkg
-	cd ..		# now in kernel_build
+		fixup_socflavour_contents
+		fixup_socflavour_filenames
+		fixup_vars_file
+		add_config
+		finish_changelog
+		create_source_pkg
+		cd ..		# now in kernel_build
 	test_build_source_pkg
+	publish_source_pkg
 
 exit 0
