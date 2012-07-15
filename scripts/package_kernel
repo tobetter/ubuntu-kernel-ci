@@ -46,7 +46,11 @@ cleanup()
 
 usage()
 {
-	echo hmmm
+	echo "package_kernel var=bar0 -c pkgingconfig.cfg [-c pkg.cfg] var=bar1"
+	echo "set vars with var=value later settings will override earlier onces"
+	echo "or use config files these are sourced and do not need full path if"
+	echo "they are in PATH and executable"
+	exit 1
 }
 
 pvar()
@@ -246,7 +250,7 @@ while (( $# > 0 )) ; do
 		-h|--help|-?)
 			usage
 			;;
-		--config)
+		--cfg)
 			echo "sourcing $2"
 			source $2
 			shift

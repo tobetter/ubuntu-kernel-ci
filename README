@@ -3,7 +3,7 @@ configs:
   script in scripts.
 
   Naming convention:
-    variant-socflavour-version-config
+    variant-socflavour-version.cfg
 
     The variant- field is optional, if empty then the kernel probably comes from
     linux-linaro. There are currently two variants, lt means the source is a landing
@@ -17,13 +17,13 @@ configs:
 
     At the time of the last update to this README the configs were:
 
-      llt-omap-3.4-config
-      llt-origen-3.4-config
-      lt-omap-3.4-config
-      lt-origen-3.5-config
-      lt-vexpress-3.5-config
-      origen-3.5-config
-      vexpress-3.5-config
+      llt-omap-3.4.cfg
+      llt-origen-3.4.cfg
+      lt-omap-3.4.cfg
+      lt-origen-3.5.cfg
+      lt-vexpress-3.5.cfg
+      origen-3.5.cfg
+      vexpress-3.5.cfg
 
   Contents:
     Here is an example config for an origen 3.5 kernel using the samsung landing
@@ -45,7 +45,7 @@ configs:
       echo "export SOCFAMILY=ORIGEN"
       echo "export SAMPLEBOARDS=origen"
       # This is just to make cloning faster.
-      echo "export nearby_git=/home/jcrigby/work/git-trees/linaro-q/linaro-q/.git"
+      echo "export nearby_git=~/reference-git"
       # This is used to pick a board conf from linaro/configs/BOARD.conf in case SOCFLAVOUR
       # is not the right thing to use.
       echo "export linaroconfigsboardflavour=origen"
@@ -67,8 +67,9 @@ usage:
   Create your own config using an existing one as an example or just use an existing one.  Then
   run it to set up some vars and the just run the package_kernel script:
 
-  source <(lt-omap-3.4-config)
-  package_kernel
+  package_kernel --cfg lt-omap-3.4.cfg foo=bar foo1=bar1
+  the var=value settings are used to overide settings in the .cfg file
+  
 
 It's just that easy (well it should be after all the bugs are worked out).  When the script 
 completes there should be a directory called kernel_build.  Just cd into it and run fdr clean
