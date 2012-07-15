@@ -1,0 +1,5 @@
+#!/bin/bash
+cd $(dirname "${BASH_SOURCE[0]}")
+test -x ./updatejobinfo && ./updatejobinfo > jobinfo.html
+cat jobinfo.html
+
