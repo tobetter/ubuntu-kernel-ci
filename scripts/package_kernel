@@ -281,6 +281,11 @@ trap cleanup EXIT
 
 keyarg=""
 
+do_merge='true'
+do_create_source_pkg='true'
+do_test_build_source_pkg='true'
+do_publish_source_pkg='true'
+
 # process command line arguments
 #
 while (( $# > 0 )) ; do
@@ -309,15 +314,33 @@ while (( $# > 0 )) ; do
 done
 
 check_settings
-setup_kernel_git 	# cd's to kernel_build/linux
-		fixup_socflavour_contents
-		fixup_socflavour_filenames
-		fixup_vars_file
-		add_config
-		finish_changelog
-		create_source_pkg
-		cd ..		# now in kernel_build
+
+test "$do_merge" == "true" && {
+	setup_kernel_git 	# cd's to kernel_build/linux
+	fixup_socflavour_contents
+	fixup_socflavour_filenames
+	fixup_vars_file
+	add_config
+	finish_changelog
+	cd ../..
+}
+
+test "$do_create_source_pkg" == "true" && { 
+	cd kernel_build/linux
+	create_source_pkg
+	cd ../..
+}
+
+test "$do_test_build_source_pkg" == true && {
+	cd kernel_build
 	test_build_source_pkg
+	cd ..
+}
+
+test "$do_publish_source_pkg" == true && {
+	cd kernel_build
 	publish_source_pkg
+	cd ..
+}
 
 exit 0
