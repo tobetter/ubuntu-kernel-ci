@@ -94,7 +94,7 @@ check_settings()
 
 	: ${linaro_base_config_frag:="linaro/configs/linaro-base.conf"}
 	: ${ubuntu_config_frag:="linaro/configs/ubuntu.conf"}
-	: ${board_config_frag:="linaro/configs/$(echo $SOCFLAVOUR | sed s/lt-//).conf"}
+	: ${board_config_frag:="linaro/configs/$(echo $SOCFLAVOUR | sed 's/l\?lt-//').conf"}
 	: ${third_version_digit:=0}
 }
 
