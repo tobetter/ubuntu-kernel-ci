@@ -15,6 +15,51 @@ if (!kernel_name) {
 }
 goodkernel=true;
 switch (kernel_name) {
+case "llt-omap-3.4":
+	kernel_repo="git://git.linaro.org/kernel/linux-linaro-tracking.git";
+	kernel_branch="linux-linaro-tracking";
+	board_config_repo="git://git.linaro.org/kernel/configs.git";
+	board_config_branch="config-boards-3.4";
+	ubuntu_and_base_config_repo="git://git.linaro.org/kernel/configs.git";
+	ubuntu_and_base_config_branch="config-core-3.4";
+	board_config_frag="linaro/configs/omap4.conf";
+	linaro_ubuntu_packaging_repo="git://git.linaro.org/ubuntu/linux-linaro-quantal.git";
+	linaro_ubuntu_packaging_branch="linaro-ubuntu-packaging-3.4";
+	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
+	ppaname="Linaro Kernel PPA";
+	maintainermail="mailto:john.rigby@linaro.org"
+	maintainername="John Rigby"
+	break;
+case "llt-origen-3.4":
+	kernel_repo="git://git.linaro.org/kernel/linux-linaro-tracking.git";
+	kernel_branch="linux-linaro-tracking";
+	board_config_repo="git://git.linaro.org/kernel/configs.git";
+	board_config_branch="config-boards-3.4";
+	ubuntu_and_base_config_repo="git://git.linaro.org/kernel/configs.git";
+	ubuntu_and_base_config_branch="config-core-3.4";
+	board_config_frag="";
+	linaro_ubuntu_packaging_repo="git://git.linaro.org/ubuntu/linux-linaro-quantal.git";
+	linaro_ubuntu_packaging_branch="linaro-ubuntu-packaging-3.4";
+	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
+	ppaname="Linaro Kernel PPA";
+	maintainermail="mailto:john.rigby@linaro.org"
+	maintainername="John Rigby"
+	break;
+case "llt-vexpress-3.4":
+	kernel_repo="git://git.linaro.org/kernel/linux-linaro-tracking.git";
+	kernel_branch="linux-linaro-tracking";
+	board_config_repo="git://git.linaro.org/kernel/configs.git";
+	board_config_branch="config-boards-3.4";
+	ubuntu_and_base_config_repo="git://git.linaro.org/kernel/configs.git";
+	ubuntu_and_base_config_branch="config-core-3.4";
+	board_config_frag="";
+	linaro_ubuntu_packaging_repo="git://git.linaro.org/ubuntu/linux-linaro-quantal.git";
+	linaro_ubuntu_packaging_branch="linaro-ubuntu-packaging-3.4";
+	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
+	ppaname="Linaro Kernel PPA";
+	maintainermail="mailto:john.rigby@linaro.org"
+	maintainername="John Rigby"
+	break;
 case "lt-omap-3.4":
 	kernel_repo="git://git.linaro.org/landing-teams/working/ti/kernel.git";
 	kernel_branch="tilt-3.4";
@@ -30,16 +75,76 @@ case "lt-omap-3.4":
 	maintainermail="mailto:john.rigby@linaro.org"
 	maintainername="John Rigby"
 	break;
-case "ltt-omap-3.4":
-	kernel_repo="git://git.linaro.org/landing-teams/working/ti/kernel.git";
-	kernel_branch="tilt-3.4";
+case "lt-origen-3.5":
+	kernel_repo="git://git.linaro.org/landing-teams/working/samsung/kernel.git";
+	kernel_branch="tracking";
+	board_config_repo="git://git.linaro.org/kernel/configs.git";
+	board_config_branch="config-boards-tracking";
+	ubuntu_and_base_config_repo="git://git.linaro.org/kernel/configs.git";
+	ubuntu_and_base_config_branch="config-core-tracking";
+	board_config_frag="";
+	linaro_ubuntu_packaging_repo="git://git.linaro.org/ubuntu/linux-linaro-quantal.git";
+	linaro_ubuntu_packaging_branch="linaro-ubuntu-packaging-3.5";
+	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
+	ppaname="Linaro Kernel PPA";
+	maintainermail="mailto:john.rigby@linaro.org"
+	maintainername="John Rigby"
+	break;
+case "lt-u8500-3.4":
+	kernel_repo="git://igloocommunity.org/git/kernel/igloo-kernel.git";
+	kernel_branch="stable-ubuntu-ux500-3.4";
 	board_config_repo="git://git.linaro.org/kernel/configs.git";
 	board_config_branch="config-boards-3.4";
 	ubuntu_and_base_config_repo="git://git.linaro.org/kernel/configs.git";
 	ubuntu_and_base_config_branch="config-core-3.4";
-	board_config_frag="linaro/configs/omap4.conf";
+	board_config_frag="";
 	linaro_ubuntu_packaging_repo="git://git.linaro.org/ubuntu/linux-linaro-quantal.git";
 	linaro_ubuntu_packaging_branch="linaro-ubuntu-packaging-3.4";
+	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
+	ppaname="Linaro Kernel PPA";
+	maintainermail="mailto:john.rigby@linaro.org"
+	maintainername="John Rigby"
+	break;
+case "lt-vexpress-3.5":
+	kernel_repo="git://git.linaro.org/landing-teams/working/arm/kernel.git";
+	kernel_branch="integration-ubuntu-vexpress";
+	board_config_repo="";
+	board_config_branch="";
+	ubuntu_and_base_config_repo="git://git.linaro.org/kernel/configs.git";
+	ubuntu_and_base_config_branch="config-core-tracking";
+	board_config_frag="";
+	linaro_ubuntu_packaging_repo="git://git.linaro.org/ubuntu/linux-linaro-quantal.git";
+	linaro_ubuntu_packaging_branch="linaro-ubuntu-packaging-3.5";
+	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
+	ppaname="Linaro Kernel PPA";
+	maintainermail="mailto:john.rigby@linaro.org"
+	maintainername="John Rigby"
+	break;
+case "origen-3.5":
+	kernel_repo="git://git.linaro.org/kernel/linux-linaro-tracking.git";
+	kernel_branch="linux-linaro";
+	board_config_repo="git://git.linaro.org/kernel/configs.git";
+	board_config_branch="config-boards-tracking";
+	ubuntu_and_base_config_repo="git://git.linaro.org/kernel/configs.git";
+	ubuntu_and_base_config_branch="config-core-tracking";
+	board_config_frag="";
+	linaro_ubuntu_packaging_repo="git://git.linaro.org/ubuntu/linux-linaro-quantal.git";
+	linaro_ubuntu_packaging_branch="linaro-ubuntu-packaging-3.5";
+	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
+	ppaname="Linaro Kernel PPA";
+	maintainermail="mailto:john.rigby@linaro.org"
+	maintainername="John Rigby"
+	break;
+case "vexpress-3.5":
+	kernel_repo="git://git.linaro.org/kernel/linux-linaro-tracking.git";
+	kernel_branch="linux-linaro";
+	board_config_repo="git://git.linaro.org/kernel/configs.git";
+	board_config_branch="config-boards-tracking";
+	ubuntu_and_base_config_repo="git://git.linaro.org/kernel/configs.git";
+	ubuntu_and_base_config_branch="config-core-tracking";
+	board_config_frag="";
+	linaro_ubuntu_packaging_repo="git://git.linaro.org/ubuntu/linux-linaro-quantal.git";
+	linaro_ubuntu_packaging_branch="linaro-ubuntu-packaging-3.5";
 	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
 	ppaname="Linaro Kernel PPA";
 	maintainermail="mailto:john.rigby@linaro.org"

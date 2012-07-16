@@ -34,7 +34,7 @@ __END_OF_HEAD__
 print_per()
 {
 	cat << __END_OF_PER__
-case "$SOCFLAVOUR":
+case "$kernel_name":
 	kernel_repo="$kernel_repo";
 	kernel_branch="$kernel_branch";
 	board_config_repo="$board_config_repo";
@@ -91,6 +91,7 @@ foreach_kernel_cfg()
 {
 	for cfg in $CFGDIR/*.cfg
 	do
+		export kernel_name=$(basename $cfg .cfg)
 		( source $cfg; eval $1 )
 	done
 }
