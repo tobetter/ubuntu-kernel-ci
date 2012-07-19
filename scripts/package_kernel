@@ -238,7 +238,7 @@ finish_changelog()
 {
 	dch -c debian.linaro/changelog -t \
 		"Packaged version of $SOCFLAVOUR kernel created from:==BODY=="
-	perl -i -pe "s#==BODY==#$(sourceinfo | sed 's/^/    /')#" \
+	perl -i -pe "s#==BODY==#$(sourceinfo | sed -e 's/#/\#' -e 's/^/    /')#" \
 		debian.linaro/changelog
 	sed -i \
 		-e "1 s/)/~ci+$(date --utc +%y%m%d%H%M%S))/" \
@@ -281,10 +281,10 @@ trap cleanup EXIT
 
 keyarg=""
 
-do_merge='true'
-do_create_source_pkg='true'
-do_test_build_source_pkg='true'
-do_publish_source_pkg='true'
+do_merge="true"
+do_create_source_pkg="true"
+do_test_build_source_pkg="true"
+do_publish_source_pkg="true"
 
 # process command line arguments
 #
@@ -331,13 +331,13 @@ test "$do_create_source_pkg" == "true" && {
 	cd ../..
 }
 
-test "$do_test_build_source_pkg" == true && {
+test "$do_test_build_source_pkg" == "true" && {
 	cd kernel_build
 	test_build_source_pkg
 	cd ..
 }
 
-test "$do_publish_source_pkg" == true && {
+test "$do_publish_source_pkg" == "true" && {
 	cd kernel_build
 	publish_source_pkg
 	cd ..
