@@ -238,12 +238,12 @@ finish_changelog()
 {
 	dch -c debian.linaro/changelog -t \
 		"Packaged version of $SOCFLAVOUR kernel created from:==BODY=="
-	perl -i -pe "s#==BODY==#$(sourceinfo | sed -e 's/#/\#/' -e 's/^/    /')#" \
-		debian.linaro/changelog
+	perl -i -pe "s#==BODY==#$(sourceinfo | sed -e 's/#/\\#/' -e 's/^/    /')#" \
+			debian.linaro/changelog
 	sed -i \
 		-e "1 s/)/~ci+$(date --utc +%y%m%d%H%M%S))/" \
 		-e "s/UNRELEASED/$distribution/" \
-		debian.linaro/changelog
+			debian.linaro/changelog
 	git add debian.linaro/changelog
 	git commit -s -m "LINARO: instantiate packaging template for $SOCFLAVOUR"
 	git clean -d -f -x
