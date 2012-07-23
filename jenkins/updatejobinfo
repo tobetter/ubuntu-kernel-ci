@@ -98,6 +98,8 @@ foreach_kernel_cfg()
 			: ${ubuntu_config_frag:="linaro/configs/ubuntu.conf"}
 			: ${board_config_frag:="linaro/configs/$(echo $SOCFLAVOUR | sed 's/l\?lt-//').conf"}
 			: ${third_version_digit:=0}
+			: ${board_config_repo:="$kernel_repo"}
+			: ${board_config_branch:="$kernel_branch"}
 			eval $1
 		)
 	done
