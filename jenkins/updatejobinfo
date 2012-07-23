@@ -39,9 +39,11 @@ case "$kernel_name":
 	kernel_branch="$kernel_branch";
 	board_config_repo="$board_config_repo";
 	board_config_branch="$board_config_branch";
+	board_config_frag="$board_config_frag";
 	ubuntu_and_base_config_repo="$ubuntu_and_base_config_repo";
 	ubuntu_and_base_config_branch="$ubuntu_and_base_config_branch";
-	board_config_frag="$board_config_frag";
+	ubuntu_config_frag="$ubuntu_config_frag";
+	linaro_base_config_frag="$linaro_base_config_frag";
 	linaro_ubuntu_packaging_repo="$linaro_ubuntu_packaging_repo";
 	linaro_ubuntu_packaging_branch="$linaro_ubuntu_packaging_branch";
 	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
@@ -59,16 +61,14 @@ default:
 	goodkernel=false;
 }
 if (goodkernel) {
-	document.writeln('Kernel Packaging and Publishing Job for ' + kernel_name);
-	document.writeln('  Kernel repo: ' + kernel_repo);
-	document.writeln('  Kernel branch: ' + kernel_branch);
-	document.writeln('  Board config repo: ' + board_config_repo);
-	document.writeln('  Board config branch: ' + board_config_branch);
+	document.writeln('Kernel packaging and publishing Job for ' + kernel_name);
+	document.writeln('  Kernel: ' + kernel_repo + ' ' + kernel_branch);
+	document.writeln('  Board config: ' + board_config_repo + ' ' + board_config_branch);
 	document.writeln('  Board config frag: ' + board_config_frag);
-	document.writeln('  Ubuntu and base config repo: ' + ubuntu_and_base_config_repo);
-	document.writeln('  Ubuntu and base config branch: ' + ubuntu_and_base_config_branch);
-	document.writeln('  Linaro ubuntu packaging repo: ' + linaro_ubuntu_packaging_repo);
-	document.writeln('  Linaro ubuntu packaging branch: ' + linaro_ubuntu_packaging_branch);
+	document.writeln('  Ubuntu and base config: ' + ubuntu_and_base_config_repo + ' ' + ubuntu_and_base_config_branch);
+	document.writeln('  Ubuntu config frag: ' + ubuntu_config_frag);
+	document.writeln('  Base config frag: ' + linaro_base_config_frag);
+	document.writeln('  Linaro ubuntu packaging: ' + linaro_ubuntu_packaging_repo + ' ' + linaro_ubuntu_packaging_branch);
 	document.writeln('  PPA: <a target="_blank" href=' + ppaurl + '>' + ppaname + '</a>');
 	document.writeln('  Maintainer: <a target="_blank" href=' + maintainermail + '>' + maintainername + '</a>');
 } else {
@@ -92,7 +92,14 @@ foreach_kernel_cfg()
 	for cfg in $CFGDIR/*.cfg
 	do
 		export kernel_name=$(basename $cfg .cfg)
-		( source $cfg; eval $1 )
+		(
+			source $cfg
+			: ${linaro_base_config_frag:="linaro/configs/linaro-base.conf"}
+			: ${ubuntu_config_frag:="linaro/configs/ubuntu.conf"}
+			: ${board_config_frag:="linaro/configs/$(echo $SOCFLAVOUR | sed 's/l\?lt-//').conf"}
+			: ${third_version_digit:=0}
+			eval $1
+		)
 	done
 }
 
