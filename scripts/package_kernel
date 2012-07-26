@@ -286,7 +286,6 @@ publish_release_tag()
 	grep -q 'Host gh' ~/.ssh/config || {
 		test -e ../../default_git_publish_keyfile && {
 			cp ../../default_git_publish_keyfile ~/.ssh/ghkey
-			chmod 600 ~/.ssh/config ~/.ssh/ghkey
 			cat <<-__END__ >> ~/.ssh/config
 				Host gh
 				        Hostname github.com
