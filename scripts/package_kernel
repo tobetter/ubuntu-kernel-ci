@@ -320,6 +320,101 @@ publish_source_pkg()
 	dput ppa:linaro-maintainers/kernel *.changes
 }
 
+create_new_hwpack()
+{
+	url="http://snapshots.linaro.org/$distribution/hwpacks/$1/latest"
+	wget -q -k --no-cookies \
+		--header "Cookie: redirectlicensephp=200" \
+		$url \
+		-O tmp.html
+	url=$(grep -o 'href="http:.*tar.gz">' tmp.html)
+	rm tmp.html
+	url=${url/href=\"}
+	url=${url/\">}
+	orig_hwpack=$(basename $url)
+	wget -N -q $url 
+	kernel_deb=$(ls kernel_build/test_build/linux-image*.deb | grep -v dbg)
+	rm -rf linaro-image-tools
+	bzr branch lp:linaro-image-tools
+	new_hwpack_url=$(python ./linaro-image-tools/linaro-hwpack-replace \
+		-t $orig_hwpack \
+		-p $kernel_deb \
+		-r linux-image \
+		-n $BUILD_NUMBER)
+	new_hwpack_name=$(basename $new_hwpack_url)
+
+	# save for upload
+	cp $new_hwpack_name out
+}
+
+get_binary_url()
+{
+	url="http://snapshots.linaro.org/$distribution/images/nano/latest"
+	wget -q -k --no-cookies \
+		--header "Cookie: redirectlicensephp=200" \
+		$url \
+		-O tmp.html
+	build=$(grep -o "linaro-$distribution-nano-.*.gz\"" tmp.html)
+	build=${build/.tar.gz\"}
+	build=${build/*-/}
+	url="http://snapshots.linaro.org/$distribution/images/nano/$build"
+	wget -q -k --no-cookies \
+		--header "Cookie: redirectlicensephp=200" \
+		$url \
+		-O tmp.html
+	url=$(grep -o 'href="http:.*tar.gz">' tmp.html)
+	rm tmp.html
+	url=${url/href=\"}
+	url=${url/\">}
+	echo rootfs=$url > out/jobinfo.sh
+}
+
+create_eula()
+{
+	touch out/EULA.txt
+}
+
+lava_test()
+{
+	# save source pkg files to be ssh uploaded
+	#
+	rm -rf out
+	mkdir out
+	cp kernel_build/*.dsc out
+	cp kernel_build/*.changes out
+	cp kernel_build/*.tar.gz out
+
+	# map job_flavour to hwpack_flavour
+	#
+	job_flavour=${job_flavour/-3.?}
+	case $job_flavour in
+		lt-omap)
+			hwpack_flavour="lt-panda"
+			;;
+		lt-origen)
+			hwpack_flavour="leb-origen"
+			;;
+		lt-u8500)
+			hwpack_flavour="lt-snowball"
+			;;
+		lt-vexpress)
+			hwpack_flavour="lt-vexpress"
+			;;
+		origen)
+			hwpack_flavour="origen"
+			;;
+		vexpress)
+			hwpack_flavour="vexpress"
+			;;
+		*)
+			carp "unsupported job flavour '$job_flavour'"
+			;;
+	esac
+	create_new_hwpack $hwpack_flavour
+	get_binary_url
+	create_eula
+}
+
 
 export scriptname=$(basename $0)
 trap cleanup EXIT
@@ -343,6 +438,7 @@ test "$JENKINS_URL" && {
 test "$running_standalone" && {
 	do_merge="true"
 	do_create_source_pkg="true"
+	BUILD_NUMBER=$$
 }
 
 # process command line arguments
@@ -358,6 +454,7 @@ while (( $# > 0 )) ; do
 		-cfg|--cfg)
 			echo "sourcing $2"
 			source $2
+			job_flavour=${2/.cfg/}
 			shift
 			;;
 		+([[:alpha:]_])*([[:word:]])=+([-[:word:]:/.]))
@@ -407,6 +504,10 @@ test "$do_publish_source_pkg" == "true" && {
 	cd kernel_build
 	publish_source_pkg
 	cd ..
+}
+
+test "$do_lava_testing" == "true" && {
+	lava_test
 }
 
 exit 0
