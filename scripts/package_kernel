@@ -299,7 +299,7 @@ __END__
 	git remote add tagpush $git_tag_publish_url
 	git tag $release_tag
 	git push tagpush $release_tag
-	exit 0
+	true
 }
 
 test_build_source_pkg()
