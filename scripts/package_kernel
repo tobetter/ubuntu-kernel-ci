@@ -308,6 +308,9 @@ test_build_source_pkg()
 	cd test_build
 	dpkg-source -x ../*.dsc linux
 	cd linux
+	test "$use_ccache" = "true" && {
+		sed -i -e 's/CC.*=.*CROSS_COMPILE.gcc/CC = ccache $(CROSS_COMPILE)gcc/' Makefile 
+	}
  	time debuild -j4 -us -uc -b -aarmhf
 	cd ../..
 }
@@ -328,13 +331,13 @@ running_standalone="true"
 running_in_jenkins="false"
 
 test "$JENKINS_URL" && { 
+	running_in_jenkins="true"
+	running_standalone="false"
 	do_merge="true"
 	do_create_source_pkg="true"
 	do_publish_release_tag="true"
 	do_test_build_source_pkg="true"
 	do_publish_source_pkg="true"
-	running_in_jenkins="true"
-	running_standalone="false"
 }
 
 test "$running_standalone" && {
@@ -352,7 +355,7 @@ while (( $# > 0 )) ; do
 			keyarg="-k$2"
 			shift
 			;;
-		--cfg)
+		-cfg|--cfg)
 			echo "sourcing $2"
 			source $2
 			shift
