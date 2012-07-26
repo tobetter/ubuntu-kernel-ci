@@ -416,11 +416,11 @@ trap cleanup EXIT
 # jenkins vs standalone
 
 running_standalone="true"
-running_in_jenkins="false"
+unset running_in_jenkins
 
 test "$JENKINS_URL" && { 
 	running_in_jenkins="true"
-	running_standalone="false"
+	unset running_standalone
 	do_merge="true"
 	do_create_source_pkg="true"
 	do_publish_release_tag="true"
@@ -428,7 +428,7 @@ test "$JENKINS_URL" && {
 	do_publish_source_pkg="true"
 }
 
-test "$running_standalone" && {
+test "$running_standalone" == "true" && {
 	do_merge="true"
 	do_create_source_pkg="true"
 	BUILD_NUMBER=$$
