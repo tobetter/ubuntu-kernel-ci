@@ -241,22 +241,7 @@ sourceinfo()
 	done
 }
 
-update_vcs_git()
-{
-	git_tag_publish_url="ssh://gh/jcrigby/linaro-ci-kernels.git"
-	git_ro_url=$(echo $git_tag_publish_url | sed s#ssh://gh/#git://github.com/#)
-	release_tag=$(changelog_get debian.linaro/changelog "Source") 
-	release_tag+="_"
-	release_tag+=$(changelog_get debian.linaro/changelog "Version") 
-	release_tag=$(echo $release_tag | sed 's/~/--/g')
-	sed -i \
-		-e "s#Vcs-Git:.*\$#Vcs-Git: $git_ro_url $release_tag#" \
-			debian.linaro/control.stub.in
-	git add debian.linaro/control.stub.in
-}
-
-
-finish_changelog()
+finish_changelog_and_tag()
 {
 	dch -c debian.linaro/changelog -t \
 		"Packaged version of $SOCFLAVOUR kernel created from:==BODY=="
@@ -267,8 +252,23 @@ finish_changelog()
 		-e "s/UNRELEASED/$distribution/" \
 			debian.linaro/changelog
 	git add debian.linaro/changelog
-	update_vcs_git
+
+	git_tag_publish_url="ssh://gh/jcrigby/linaro-ci-kernels.git"
+	git_ro_url=$(echo $git_tag_publish_url | sed s#ssh://gh/#git://github.com/#)
+	release_tag=$(changelog_get debian.linaro/changelog "Source") 
+	release_tag+="_"
+	release_tag+=$(changelog_get debian.linaro/changelog "Version") 
+	release_tag=$(echo $release_tag | sed 's/~/--/g')
+	sed -i \
+		-e "s#Vcs-Git:.*\$#Vcs-Git: $git_ro_url $release_tag#" \
+			debian.linaro/control.stub.in
+	git add debian.linaro/control.stub.in
+	fdr clean
+	git add -f debian/changelog debian/control
+
 	git commit -s -m "LINARO: instantiate packaging template for $SOCFLAVOUR"
+	git tag $release_tag
+
 	git clean -d -f -x
 	git reset --hard HEAD
 	true
@@ -297,10 +297,7 @@ __END__
 	}
 	chmod 600 ~/.ssh/config ~/.ssh/ghkey
 	git remote add tagpush $git_tag_publish_url
-	git tag $release_tag
 	git push tagpush $release_tag
-	rm ~/.ssh/ghkey
-	rm ~/.ssh/config
 	true
 }
 
@@ -313,7 +310,7 @@ test_build_source_pkg()
 	test "$use_ccache" = "true" && {
 		sed -i -e 's/CC.*=.*CROSS_COMPILE.gcc/CC = ccache $(CROSS_COMPILE)gcc/' Makefile 
 	}
- 	time debuild -j4 -us -uc -b -aarmhf
+ 	time debuild --no-lintian -j4 -us -uc -b -aarmhf
 	cd ../..
 }
 
@@ -329,10 +326,8 @@ create_new_hwpack()
 		--header "Cookie: redirectlicensephp=200" \
 		$url \
 		-O tmp.html
-	url=$(grep -o 'href="http:.*tar.gz">' tmp.html)
+	url=$(grep -Po '(?<=href=")http:.*tar.gz(?=">)' tmp.html)
 	rm tmp.html
-	url=${url/href=\"}
-	url=${url/\">}
 	orig_hwpack=$(basename $url)
 	wget -N -q $url 
 	kernel_deb=$(ls kernel_build/test_build/linux-image*.deb | grep -v dbg)
@@ -346,34 +341,28 @@ create_new_hwpack()
 	new_hwpack_name=$(basename $new_hwpack_url)
 
 	# save for upload
-	cp $new_hwpack_name out
+	mv $new_hwpack_name $OUT
 }
 
 get_binary_url()
 {
-	url="http://snapshots.linaro.org/$distribution/images/nano/latest"
+	url="http://snapshots.linaro.org/$distribution/images/nano"
 	wget -q -k --no-cookies \
 		--header "Cookie: redirectlicensephp=200" \
 		$url \
 		-O tmp.html
-	build=$(grep -o "linaro-$distribution-nano-.*.gz\"" tmp.html)
-	build=${build/.tar.gz\"}
-	build=${build/*-/}
-	url="http://snapshots.linaro.org/$distribution/images/nano/$build"
+	url=$(grep -Po '(?<=href=").*precise.images.nano.*/\d\d\d?/(?=">)' tmp.html | sort -V | tail -1)
 	wget -q -k --no-cookies \
 		--header "Cookie: redirectlicensephp=200" \
 		$url \
 		-O tmp.html
-	url=$(grep -o 'href="http:.*tar.gz">' tmp.html)
-	rm tmp.html
-	url=${url/href=\"}
-	url=${url/\">}
-	echo rootfs=$url > out/jobinfo.sh
+	url=$(grep -Po '(?<=href=").*gz(?=">)' tmp.html) 
+	echo rootfs=$url >> $OUT/jobinfo.sh
 }
 
 create_eula()
 {
-	touch out/EULA.txt
+	touch $OUT/EULA.txt
 }
 
 lava_test()
@@ -381,10 +370,12 @@ lava_test()
 	# save source pkg files to be ssh uploaded
 	#
 	rm -rf out
-	mkdir out
-	cp kernel_build/*.dsc out
-	cp kernel_build/*.changes out
-	cp kernel_build/*.tar.gz out
+	OUT=out/$BUILD_NUMBER
+	mkdir -p $OUT
+	echo "release_tag=$release_tag" > $OUT/jobinfo.sh
+#	cp kernel_build/*.dsc $OUT
+#	cp kernel_build/*.changes $OUT
+#	cp kernel_build/*.tar.gz $OUT
 
 	# map job_flavour to hwpack_flavour
 	#
@@ -480,7 +471,7 @@ test "$do_merge" == "true" && {
 	fixup_socflavour_filenames
 	fixup_vars_file
 	add_config
-	finish_changelog
+	finish_changelog_and_tag
 	cd ../..
 }
 
