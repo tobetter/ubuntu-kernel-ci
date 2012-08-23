@@ -198,7 +198,8 @@ process_remaining_patches()
 				cp $p $sauce_patchdir
 				;;
 			*:*	)
-				carp "combined sauce and packaging patch $p needs special handling"
+				verbose_info "combined sauce and packaging patch $p needs special handling"
+				cp $p $combined_patchdir
 				;;
 		esac
 	done

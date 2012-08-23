@@ -56,7 +56,7 @@ usage()
 
 pvar()
 {
-	verbose_info "$1 = ${!1}"
+	echo "$1=${!1}"
 }
 
 fdr()
@@ -97,6 +97,7 @@ check_settings()
 	must_be_set "SOCVENDOR"
 	must_be_set "SOCFAMILY"
 	must_be_set "SAMPLEBOARDS"
+	must_be_set "nearby_git"
 
 	should_be_set "board_config_repo" "kernel_repo"
 	should_be_set "board_config_branch" "kernel_branch"
@@ -255,9 +256,9 @@ finish_changelog_and_tag()
 
 	git_tag_publish_url="ssh://gh/jcrigby/linaro-ci-kernels.git"
 	git_ro_url=$(echo $git_tag_publish_url | sed s#ssh://gh/#git://github.com/#)
-	release_tag=$(changelog_get debian.linaro/changelog "Source") 
+	release_tag=$(changelog_get debian.linaro/changelog "Source")
 	release_tag+="_"
-	release_tag+=$(changelog_get debian.linaro/changelog "Version") 
+	release_tag+=$(changelog_get debian.linaro/changelog "Version")
 	release_tag=$(echo $release_tag | sed 's/~/--/g')
 	sed -i \
 		-e "s#Vcs-Git:.*\$#Vcs-Git: $git_ro_url $release_tag#" \
@@ -308,7 +309,7 @@ test_build_source_pkg()
 	dpkg-source -x ../*.dsc linux
 	cd linux
 	test "$use_ccache" = "true" && {
-		sed -i -e 's/CC.*=.*CROSS_COMPILE.gcc/CC = ccache $(CROSS_COMPILE)gcc/' Makefile 
+		sed -i -e 's/CC.*=.*CROSS_COMPILE.gcc/CC = ccache $(CROSS_COMPILE)gcc/' Makefile
 	}
  	time debuild --no-lintian -j4 -us -uc -b -aarmhf
 	cd ../..
@@ -317,6 +318,18 @@ test_build_source_pkg()
 publish_source_pkg()
 {
 	dput ppa:linaro-maintainers/kernel *.changes
+}
+
+# NB this must match the path munging that happens when the hwpack is copied to s.l.o
+# and the subsequently reshuffled
+#
+get_hwpack_url()
+{
+	url="http://snapshots.linaro.org/kernel-hwpack/"
+	url+=${JOB_NAME/./_}/
+	url+=${JOB_NAME}/
+	url+=$BUILD_NUMBER/$1
+	echo $url
 }
 
 create_new_hwpack()
@@ -329,7 +342,7 @@ create_new_hwpack()
 	url=$(grep -Po '(?<=href=")http:.*tar.gz(?=">)' tmp.html)
 	rm tmp.html
 	orig_hwpack=$(basename $url)
-	wget -N -q $url 
+	wget -N -q $url
 	kernel_deb=$(ls kernel_build/test_build/linux-image*.deb | grep -v dbg)
 	rm -rf linaro-image-tools
 	bzr branch lp:linaro-image-tools
@@ -338,10 +351,13 @@ create_new_hwpack()
 		-p $kernel_deb \
 		-r linux-image \
 		-n $BUILD_NUMBER)
-	new_hwpack_name=$(basename $new_hwpack_url)
+	hwpack_name=$(basename $new_hwpack_url)
 
 	# save for upload
-	mv $new_hwpack_name $OUT
+	mv $hwpack_name $OUT
+	pvar "hwpack_name" >> $OUT/jobinfo.sh
+	hwpack_url=$(get_hwpack_url $hwpack_name)
+	pvar "hwpack_url" >> $OUT/jobinfo.sh
 }
 
 get_binary_url()
@@ -356,13 +372,48 @@ get_binary_url()
 		--header "Cookie: redirectlicensephp=200" \
 		$url \
 		-O tmp.html
-	url=$(grep -Po '(?<=href=").*gz(?=">)' tmp.html) 
-	echo rootfs=$url >> $OUT/jobinfo.sh
+	rootfs_url=$(grep -Po '(?<=href=").*gz(?=">)' tmp.html)
+	pvar "rootfs_url" >> $OUT/jobinfo.sh
 }
 
 create_eula()
 {
 	touch $OUT/EULA.txt
+}
+
+submit_lava_job()
+{
+	must_be_set "LAVA_USER"
+	must_be_set "LAVA_TOKEN"
+
+	jobname="ubuntu-kernel-ci-test-$JOB_NAME-$BUILD_NUMBER"
+
+	# remember if tracing is on and turn it off
+	unset xtrace
+	set -o | grep -q 'xtrace.*on' && xtrace='true'
+	echo "xtrace is $xtrace"
+	set +x
+
+	jobfile=jobfile.json
+	cat ${CIROOTDIR}/scripts/jobfile.tmpl.json > $jobfile
+	sed -i \
+		-e "s#%%ROOTFS_URL%%#$rootfs_url#" \
+		-e "s#%%HWPACK_URL%%#$hwpack_url#" \
+		-e "s#%%JOB_NAME%%#$jobname#" \
+		-e "s#%%DEVICE_TYPE%%#$device_type#" \
+			$jobfile
+	lava_job_id=$(lava-tool \
+		submit-job \
+		https://$LAVA_USER:$LAVA_TOKEN@validation.linaro.org/lava-server/RPC2/ \
+		$jobfile | \
+			grep -v EXPERIMENTAL | cut -d ":" -f 2 | tr -d ' ')
+
+	# turn tracing back on if it was on before
+	test "$xtrace" = "true" && set -x
+
+	lava_job_url="http://validation.linaro.org/lava-server/scheduler/job/$lava_job_id"
+	pvar "lava_job_id" >> $OUT/jobinfo.sh
+	pvar "lava_job_url" >> $OUT/jobinfo.sh
 }
 
 lava_test()
@@ -372,10 +423,8 @@ lava_test()
 	rm -rf out
 	OUT=out/$BUILD_NUMBER
 	mkdir -p $OUT
-	echo "release_tag=$release_tag" > $OUT/jobinfo.sh
-#	cp kernel_build/*.dsc $OUT
-#	cp kernel_build/*.changes $OUT
-#	cp kernel_build/*.tar.gz $OUT
+	cat /dev/null > $OUT/jobinfo.sh
+	pvar "release_tag" >> $OUT/jobinfo.sh
 
 	# map job_flavour to hwpack_flavour
 	#
@@ -383,21 +432,27 @@ lava_test()
 	case $job_flavour in
 		lt-omap)
 			hwpack_flavour="lt-panda"
+			device_type="panda"
 			;;
 		lt-origen)
 			hwpack_flavour="leb-origen"
+			device_type="origen"
 			;;
 		lt-u8500)
 			hwpack_flavour="lt-snowball"
+			device_type="snowball_sd"
 			;;
 		lt-vexpress)
 			hwpack_flavour="lt-vexpress"
+			device_type="vexpress"
 			;;
 		origen)
 			hwpack_flavour="origen"
+			device_type="origen"
 			;;
 		vexpress)
 			hwpack_flavour="vexpress"
+			device_type="vexpress"
 			;;
 		*)
 			carp "unsupported job flavour '$job_flavour'"
@@ -406,8 +461,8 @@ lava_test()
 	create_new_hwpack $hwpack_flavour
 	get_binary_url
 	create_eula
+	submit_lava_job
 }
-
 
 export scriptname=$(basename $0)
 trap cleanup EXIT
@@ -418,7 +473,7 @@ trap cleanup EXIT
 running_standalone="true"
 unset running_in_jenkins
 
-test "$JENKINS_URL" && { 
+test "$JENKINS_URL" && {
 	running_in_jenkins="true"
 	unset running_standalone
 	do_merge="true"
@@ -475,13 +530,13 @@ test "$do_merge" == "true" && {
 	cd ../..
 }
 
-test "$do_create_source_pkg" == "true" && { 
+test "$do_create_source_pkg" == "true" && {
 	cd kernel_build/linux
 	create_source_pkg
 	cd ../..
 }
 
-test "$do_publish_release_tag" == "true" && { 
+test "$do_publish_release_tag" == "true" && {
 	cd kernel_build/linux
 	publish_release_tag
 	cd ../..

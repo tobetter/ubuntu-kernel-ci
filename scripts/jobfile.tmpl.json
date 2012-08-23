@@ -1,0 +1,44 @@
+{
+  "job_name": "%%JOB_NAME%%",
+  "device_type": "%%DEVICE_TYPE%%",
+  "timeout": 18000,
+  "actions": [
+    {
+      "command": "deploy_linaro_image",
+      "parameters":
+        {
+          "rootfs": "%%ROOTFS_URL%%",
+          "hwpack": "%%HWPACK_URL%%"
+        }
+    },
+    {
+      "command": "lava_test_install",
+      "parameters":
+        {
+            "tests": ["stream"]
+        }
+    },
+    {
+      "command": "boot_linaro_image"
+    },
+    {
+      "command": "lava_test_run",
+      "parameters":
+        {
+          "test_name": "stream"
+        }
+    },
+    {
+      "command": "submit_results",
+      "parameters":
+        {
+          "server": "http://validation.linaro.org/lava-server/RPC2/",
+          "stream": "/anonymous/jcrigby/"
+        }
+    }
+  ]
+}
+
+
+
+
