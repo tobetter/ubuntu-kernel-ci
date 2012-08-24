@@ -1,0 +1,29 @@
+#!/bin/bash
+set -x
+set -e
+shopt -s extglob
+
+pvar()
+{
+	echo "$1=${!1}"
+}
+
+# remember if tracing is on and turn it off
+unset xtrace
+set -o | grep -q 'xtrace.*on' && xtrace='true'
+set +x
+
+OUT=out/$BUILD_NUMBER
+jobfile=$OUT/jobfile.json
+lava_job_id=$(lava-tool \
+	submit-job \
+	https://$LAVA_USER:$LAVA_TOKEN@validation.linaro.org/lava-server/RPC2/ \
+	$jobfile | \
+		grep -v EXPERIMENTAL | cut -d ":" -f 2 | tr -d ' ')
+
+# turn tracing back on if it was on before
+test "$xtrace" = "true" && set -x
+
+lava_job_url="http://validation.linaro.org/lava-server/scheduler/job/$lava_job_id"
+pvar "lava_job_id" >> $OUT/jobinfo.sh
+pvar "lava_job_url" >> $OUT/jobinfo.sh

@@ -389,12 +389,12 @@ submit_lava_job()
 	jobname="ubuntu-kernel-ci-test-$JOB_NAME-$BUILD_NUMBER"
 
 	# remember if tracing is on and turn it off
-	unset xtrace
-	set -o | grep -q 'xtrace.*on' && xtrace='true'
-	echo "xtrace is $xtrace"
-	set +x
+	#unset xtrace
+	#set -o | grep -q 'xtrace.*on' && xtrace='true'
+	#echo "xtrace is $xtrace"
+	#set +x
 
-	jobfile=jobfile.json
+	jobfile=$OUT/jobfile.json
 	cat ${CIROOTDIR}/scripts/jobfile.tmpl.json > $jobfile
 	sed -i \
 		-e "s#%%ROOTFS_URL%%#$rootfs_url#" \
@@ -402,18 +402,20 @@ submit_lava_job()
 		-e "s#%%JOB_NAME%%#$jobname#" \
 		-e "s#%%DEVICE_TYPE%%#$device_type#" \
 			$jobfile
-	lava_job_id=$(lava-tool \
-		submit-job \
-		https://$LAVA_USER:$LAVA_TOKEN@validation.linaro.org/lava-server/RPC2/ \
-		$jobfile | \
-			grep -v EXPERIMENTAL | cut -d ":" -f 2 | tr -d ' ')
+	###### this must wait until the hwpack has been copied to snapshots.linaro.org
+	#lava_job_id=$(lava-tool \
+	#	submit-job \
+	#	https://$LAVA_USER:$LAVA_TOKEN@validation.linaro.org/lava-server/RPC2/ \
+	#	$jobfile | \
+	#		grep -v EXPERIMENTAL | cut -d ":" -f 2 | tr -d ' ')
 
 	# turn tracing back on if it was on before
-	test "$xtrace" = "true" && set -x
+	#test "$xtrace" = "true" && set -x
 
-	lava_job_url="http://validation.linaro.org/lava-server/scheduler/job/$lava_job_id"
-	pvar "lava_job_id" >> $OUT/jobinfo.sh
-	pvar "lava_job_url" >> $OUT/jobinfo.sh
+	#lava_job_url="http://validation.linaro.org/lava-server/scheduler/job/$lava_job_id"
+	#pvar "lava_job_id" >> $OUT/jobinfo.sh
+	#pvar "lava_job_url" >> $OUT/jobinfo.sh
+	true
 }
 
 lava_test()
