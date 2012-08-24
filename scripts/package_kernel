@@ -367,7 +367,7 @@ get_binary_url()
 		--header "Cookie: redirectlicensephp=200" \
 		$url \
 		-O tmp.html
-	url=$(grep -Po '(?<=href=").*precise.images.nano.*/\d\d\d?/(?=">)' tmp.html | sort -V | tail -1)
+	url=$(grep -Po '(?<=href=").*precise.images.nano.*/\d\d\d?/?(?=">)' tmp.html | sort -V | tail -1)
 	wget -q -k --no-cookies \
 		--header "Cookie: redirectlicensephp=200" \
 		$url \
