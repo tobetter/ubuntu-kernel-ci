@@ -432,21 +432,25 @@ lava_test()
 	#
 	job_flavour=${job_flavour/-3.?}
 	case $job_flavour in
-		lt-omap)
+		lt-omap|llt-omap)
 			hwpack_flavour="lt-panda"
 			device_type="panda"
 			;;
-		lt-origen)
+		lt-origen|llt-origen)
 			hwpack_flavour="leb-origen"
 			device_type="origen"
 			;;
-		lt-u8500)
+		lt-u8500|llt-u8500)
 			hwpack_flavour="lt-snowball"
 			device_type="snowball_sd"
 			;;
-		lt-vexpress)
+		lt-vexpress|llt-vexpress)
 			hwpack_flavour="lt-vexpress"
 			device_type="vexpress"
+			;;
+		omap)
+			hwpack_flavour="panda"
+			device_type="panda"
 			;;
 		origen)
 			hwpack_flavour="origen"
