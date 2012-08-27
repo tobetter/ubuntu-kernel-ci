@@ -320,6 +320,21 @@ publish_source_pkg()
 	dput ppa:linaro-maintainers/kernel *.changes
 }
 
+download_license_protected_file()
+{
+	local url=$1
+	test -f ./linaro-license-protection/tests/license_protected_file_downloader.py || {
+		for tries in $(seq 10)
+		do
+			python -m html2text < /dev/null > /dev/null  && break
+			sudo apt-get -y install python-html2text python-beautifulsoup || echo "apt-get install failed, will try again"
+			sleep 30
+		done
+		bzr branch lp:linaro-license-protection
+	}
+	python ./linaro-license-protection/tests/license_protected_file_downloader.py $url
+}
+
 # NB this must match the path munging that happens when the hwpack is copied to s.l.o
 # and the subsequently reshuffled
 #
@@ -342,7 +357,8 @@ create_new_hwpack()
 	url=$(grep -Po '(?<=href=")http:.*tar.gz(?=">)' tmp.html)
 	rm tmp.html
 	orig_hwpack=$(basename $url)
-	wget -N -q $url
+	#wget -N -q $url
+	download_license_protected_file $url
 	kernel_deb=$(ls kernel_build/test_build/linux-image*.deb | grep -v dbg)
 	rm -rf linaro-image-tools
 	bzr branch lp:linaro-image-tools
