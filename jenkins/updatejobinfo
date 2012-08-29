@@ -8,6 +8,16 @@ shopt -s extglob
 export CIROOTDIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 export PATH="$CIROOTDIR/scripts:$CIROOTDIR/configs:$PATH"
 
+prep()
+{
+	for try in $(seq 10)
+	do
+		type wget && break
+		sudo apt-get -y install wget || echo "apt-get install failed, will try again"
+		sleep 30
+	done
+}
+
 print_head()
 {
 	cat << __END_OF_HEAD__
@@ -33,6 +43,10 @@ __END_OF_HEAD__
 
 print_per()
 {
+	logurl="https://ci.linaro.org/jenkins/job/package-and-publish-linux-linaro-$kernel_name/lastBuild/consoleText"
+	lavaurl=$(wget -q --no-check-certificate -q -O -
+			$logurl |
+			grep  -Po '(?<=echo lava_job_url=)http://validation.linaro.org.*')
 	cat << __END_OF_PER__
 case "$kernel_name":
 	kernel_repo="$kernel_repo";
@@ -46,7 +60,8 @@ case "$kernel_name":
 	linaro_base_config_frag="$linaro_base_config_frag";
 	linaro_ubuntu_packaging_repo="$linaro_ubuntu_packaging_repo";
 	linaro_ubuntu_packaging_branch="$linaro_ubuntu_packaging_branch";
-	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel";
+	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel/+packages?field.name_filter=$kernel_name";
+	lavaurl="$lavaurl";
 	ppaname="Linaro Kernel PPA";
 	maintainermail="mailto:john.rigby@linaro.org"
 	maintainername="John Rigby"
@@ -69,7 +84,8 @@ if (goodkernel) {
 	document.writeln('  Ubuntu config frag: ' + ubuntu_config_frag);
 	document.writeln('  Base config frag: ' + linaro_base_config_frag);
 	document.writeln('  Linaro ubuntu packaging: ' + linaro_ubuntu_packaging_repo + ' ' + linaro_ubuntu_packaging_branch);
-	document.writeln('  PPA: <a target="_blank" href=' + ppaurl + '>' + ppaname + '</a>');
+	document.writeln('  View package in <a target="_blank" href=' + ppaurl + '>' + ppaname + '</a>');
+	document.writeln('  View test results in <a target="_blank" href=' + lavaurl + '>Lava Job</a>');
 	document.writeln('  Maintainer: <a target="_blank" href=' + maintainermail + '>' + maintainername + '</a>');
 } else {
 	document.writeln('Kernel Packaging and Publishing Job for unknown kernel: "' + kernel_name + '"');
@@ -105,25 +121,9 @@ foreach_kernel_cfg()
 	done
 }
 
+prep
 print_head
 foreach_kernel_cfg print_per
 print_foot
 
-
 exit 0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
