@@ -44,9 +44,8 @@ __END_OF_HEAD__
 print_per()
 {
 	logurl="https://ci.linaro.org/jenkins/job/package-and-publish-linux-linaro-$kernel_name/lastBuild/consoleText"
-	lavaurl=$(wget -q --no-check-certificate -q -O -
-			$logurl |
-			grep  -Po '(?<=echo lava_job_url=)http://validation.linaro.org.*')
+	lavaurl=$(wget -q --no-check-certificate -q -O - $logurl |
+			grep  -Po '(?<=echo lava_job_url=)http://validation.linaro.org.*') || echo ""
 	cat << __END_OF_PER__
 case "$kernel_name":
 	kernel_repo="$kernel_repo";
