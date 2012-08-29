@@ -12,7 +12,7 @@ prep()
 {
 	for try in $(seq 10)
 	do
-		type wget && break
+		type wget > /dev/null && break
 		sudo apt-get -y install wget || echo "apt-get install failed, will try again"
 		sleep 30
 	done
