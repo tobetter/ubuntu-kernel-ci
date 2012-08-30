@@ -60,6 +60,7 @@ case "$kernel_name":
 	linaro_ubuntu_packaging_repo="$linaro_ubuntu_packaging_repo";
 	linaro_ubuntu_packaging_branch="$linaro_ubuntu_packaging_branch";
 	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel/+packages?field.name_filter=$kernel_name";
+	ppacopyurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel/+copy-packages?field.name_filter=$kernel_name";
 	lavaurl="$lavaurl";
 	ppaname="Linaro Kernel PPA";
 	maintainermail="mailto:john.rigby@linaro.org"
@@ -85,6 +86,7 @@ if (goodkernel) {
 	document.writeln('  Linaro ubuntu packaging: ' + linaro_ubuntu_packaging_repo + ' ' + linaro_ubuntu_packaging_branch);
 	document.writeln('  View package in <a target="_blank" href=' + ppaurl + '>' + ppaname + '</a>');
 	document.writeln('  View test results in <a target="_blank" href=' + lavaurl + '>Lava Job</a>');
+	document.writeln('  Copy package to another ppa: <a target="_blank" href=' + ppacopyurl + '>copy</a>');
 	document.writeln('  Maintainer: <a target="_blank" href=' + maintainermail + '>' + maintainername + '</a>');
 } else {
 	document.writeln('Kernel Packaging and Publishing Job for unknown kernel: "' + kernel_name + '"');
