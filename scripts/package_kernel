@@ -400,7 +400,7 @@ create_eula()
 submit_lava_job()
 {
 	must_be_set "LAVA_USER"
-	must_be_set "LAVA_TOKEN"
+	must_be_set "LAVA_TOKEN" > /dev/null
 
 	jobname="ubuntu-kernel-ci-test-$JOB_NAME-$BUILD_NUMBER"
 
