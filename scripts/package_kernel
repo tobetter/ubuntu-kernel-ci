@@ -32,6 +32,12 @@ infoexit()
 	exit 0
 }
 
+info()
+{
+	echo $1
+	true
+}
+
 # echo message if being verbose
 #
 verbose_info()
@@ -71,6 +77,13 @@ changelog_get()
 		| sed -e "s/$2: //"
 }
 
+set_if_notset()
+{
+	test "${!1}" && return 0
+	info "defaulting $1 to $2"
+	eval "export $1=$2"
+}
+
 must_be_set()
 {
 	test "${!1}" || carp "$1 must be set in env"
@@ -86,6 +99,10 @@ should_be_set()
 
 check_settings()
 {
+	set_if_notset "KARCH" "arm"
+	set_if_notset "DEBARCH" "armhf"
+	set_if_notset "DEBARCHES" "armhf armel"
+
 	must_be_set "kernel_repo"
 	must_be_set "kernel_branch"
 	must_be_set "linaro_ubuntu_packaging_repo"
@@ -199,12 +216,14 @@ fixup_vars_file()
 add_config()
 {
 	: ${linaroconfigsboardflavour:=$(echo $SOCFLAVOUR | sed s/lt-//)}
-	ARCH=arm ./scripts/kconfig/merge_config.sh \
+	ARCH=$KARCH ./scripts/kconfig/merge_config.sh \
 		$linaro_base_config_frag \
 		$ubuntu_config_frag \
 		$board_config_frag
-	cp .config debian.linaro/config/armel/config.flavour.linaro-$SOCFLAVOUR
-	cp .config debian.linaro/config/armhf/config.flavour.linaro-$SOCFLAVOUR
+	for a in $DEBARCHES
+	do
+		cp .config debian.linaro/config/$a/config.flavour.linaro-$SOCFLAVOUR
+	done
 	fdr clean
 	fdr defaultconfigs
 	git add debian.linaro/config
@@ -278,7 +297,7 @@ finish_changelog_and_tag()
 create_source_pkg()
 {
 	fdr clean
-	debuild --no-lintian -sa -S $keyarg -I -i -aarmhf
+	debuild --no-lintian -sa -S $keyarg -I -i -a$DEBARCH
 }
 
 publish_release_tag()
@@ -311,7 +330,7 @@ test_build_source_pkg()
 	test "$use_ccache" = "true" && {
 		sed -i -e 's/CC.*=.*CROSS_COMPILE.gcc/CC = ccache $(CROSS_COMPILE)gcc/' Makefile
 	}
- 	time debuild --no-lintian -j4 -us -uc -b -aarmhf
+	time debuild --no-lintian -j4 -us -uc -b -a$DEBARCH
 	cd ../..
 }
 
@@ -543,7 +562,7 @@ done
 check_settings
 
 test "$do_merge" == "true" && {
-	setup_kernel_git 	# cd's to kernel_build/linux
+	setup_kernel_git	# cd's to kernel_build/linux
 	fixup_socflavour_contents
 	fixup_socflavour_filenames
 	fixup_vars_file
