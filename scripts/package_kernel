@@ -462,7 +462,7 @@ lava_test()
 			;;
 		lt-vexpress|llt-vexpress)
 			hwpack_flavour="lt-vexpress"
-			device_type="vexpress"
+			device_type="vexpress-a9"
 			;;
 		omap)
 			hwpack_flavour="panda"
@@ -474,7 +474,7 @@ lava_test()
 			;;
 		vexpress)
 			hwpack_flavour="vexpress"
-			device_type="vexpress"
+			device_type="vexpress-a9"
 			;;
 		*)
 			carp "unsupported job flavour '$job_flavour'"
