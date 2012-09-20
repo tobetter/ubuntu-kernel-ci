@@ -7,6 +7,7 @@ shopt -s extglob
 #
 export CIROOTDIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 export PATH="$CIROOTDIR/scripts:$CIROOTDIR/configs:$PATH"
+export debuild_prepend_path=""
 
 # exit with error message and bad exit status
 #
@@ -321,6 +322,16 @@ __END__
 	true
 }
 
+install_custom_toolchain()
+{
+	export debuild_prepend_path="--prepend-path $HOME/tc/bin"
+	test -d ~/tc/bin && return 0
+	mkdir -p ~/tc
+	wget --user=$tc_user --password="$tc_pw" $tc_url
+	tar --strip-components=1 -C ~/tc -xvf $(basename $tc_url)
+	true
+}
+
 test_build_source_pkg()
 {
 	mkdir -p test_build
@@ -330,7 +341,7 @@ test_build_source_pkg()
 	test "$use_ccache" = "true" && {
 		sed -i -e 's/CC.*=.*CROSS_COMPILE.gcc/CC = ccache $(CROSS_COMPILE)gcc/' Makefile
 	}
-	time debuild --no-lintian -j4 -us -uc -b -a$DEBARCH
+	time debuild $debuild_prepend_path --no-lintian -j4 -us -uc -b -a$DEBARCH
 	cd ../..
 }
 
@@ -495,6 +506,10 @@ lava_test()
 			hwpack_flavour="vexpress"
 			device_type="vexpress-a9"
 			;;
+		vexpress64)
+			hwpack_flavour="vexpress64"
+			device_type="vexpress64"
+			;;
 		*)
 			carp "unsupported job flavour '$job_flavour'"
 			;;
@@ -584,6 +599,7 @@ test "$do_publish_release_tag" == "true" && {
 }
 
 test "$do_test_build_source_pkg" == "true" && {
+	test "$tc_url" && install_custom_toolchain
 	cd kernel_build
 	test_build_source_pkg
 	cd ..
