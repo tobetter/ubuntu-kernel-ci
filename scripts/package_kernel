@@ -327,8 +327,7 @@ install_custom_toolchain()
 	export debuild_prepend_path="--prepend-path $HOME/tc/bin"
 	test -d ~/tc/bin && return 0
 	mkdir -p ~/tc
-	wget --user=$tc_user --password="$tc_pw" $tc_url
-	tar --strip-components=1 -C ~/tc -xvf $(basename $tc_url)
+	tar --strip-components=1 -C ~/tc gcc-linaro-aarch64*.tar.*
 	true
 }
 
@@ -599,7 +598,7 @@ test "$do_publish_release_tag" == "true" && {
 }
 
 test "$do_test_build_source_pkg" == "true" && {
-	test "$tc_url" && install_custom_toolchain
+	test -f gcc-linaro-aarch64*.tar.* && install_custom_toolchain
 	cd kernel_build
 	test_build_source_pkg
 	cd ..
