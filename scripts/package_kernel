@@ -327,7 +327,7 @@ install_custom_toolchain()
 	export debuild_prepend_path="--prepend-path $HOME/tc/bin"
 	test -d ~/tc/bin && return 0
 	mkdir -p ~/tc
-	tar --strip-components=1 -C ~/tc gcc-linaro-aarch64*.tar.*
+	tar --strip-components=1 -C ~/tc -xf gcc-linaro-aarch64*.tar.*
 	true
 }
 
