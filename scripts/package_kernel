@@ -126,6 +126,13 @@ check_settings()
 	: ${third_version_digit:=0}
 }
 
+cleanup_previous_build()
+{
+	test -d out &&
+		rm -rf out
+	mkdir out
+}
+
 #
 # NB - Everything from here until noted runs in kernel_build/linux directory
 #
@@ -350,7 +357,8 @@ test_build_source_pkg()
 		sed -i -e 's/CC.*=.*CROSS_COMPILE.gcc/CC = ccache $(CROSS_COMPILE)gcc/' Makefile
 	}
 	time debuild $debuild_prepend_path --no-lintian -j4 -us -uc -b -a$DEBARCH
-	cd ../..
+	cd ..
+	ln *.deb *.changes ../../out
 }
 
 publish_source_pkg()
@@ -585,6 +593,7 @@ done
 check_settings
 
 test "$do_merge" == "true" && {
+	cleanup_previous_build
 	setup_kernel_git	# cd's to kernel_build/linux
 	fixup_socflavour_contents
 	fixup_socflavour_filenames
@@ -597,7 +606,9 @@ test "$do_merge" == "true" && {
 test "$do_create_source_pkg" == "true" && {
 	cd kernel_build/linux
 	create_source_pkg
-	cd ../..
+	cd ..
+	ln *.tar.gz *.dsc *.changes ../out
+	cd ..
 }
 
 test "$do_publish_release_tag" == "true" && {
@@ -608,6 +619,7 @@ test "$do_publish_release_tag" == "true" && {
 
 test "$do_test_build_source_pkg" == "true" && {
 	test -f gcc-linaro-aarch64*.tar.* && install_custom_toolchain
+	test -d ~/tc/bin && install_custom_toolchain
 	cd kernel_build
 	test_build_source_pkg
 	cd ..
