@@ -157,10 +157,14 @@ setup_kernel_git()
 	git remote add -t $kernel_branch \
 		kernel_remote \
 		$kernel_repo
-	boot_wrapper_desc="Boot wrapper"
-	git remote add -t $boot_wrapper_branch \
-		boot_wrapper_remote \
-		$boot_wrapper_repo
+	boot_wrapper_desc="Boot Wrapper"
+	rm -rf ../boot-wrapper
+	cd ..
+		git clone $boot_wrapper_repo boot-wrapper
+		cd boot-wrapper
+		git branch -r
+			git checkout origin/$boot_wrapper_branch
+	cd ../linux
 	linaro_ubuntu_packaging_desc="Packaging template"
 	git remote add -t $linaro_ubuntu_packaging_branch \
 		linaro_ubuntu_packaging_remote \
@@ -181,9 +185,9 @@ setup_kernel_git()
 	git clean -d -f -x
 	test -d debian && git rm -r debian
 	test -d debian.linaro && git rm -r debian.linaro
-	git checkout remotes/boot_wrapper_remote/$boot_wrapper_branch \
-		-- \
-		$boot_wrapper_frag
+	mkdir -p linaro
+	cp -a ../boot-wrapper/ linaro
+	git add linaro/boot-wrapper/
 	git checkout remotes/linaro_ubuntu_packaging_remote/$linaro_ubuntu_packaging_branch \
 		-- \
 		debian \
@@ -274,7 +278,11 @@ sourceinfo()
 				;;
 		esac
 		echo "Head:"
-		git log -1 "${remote}/${!branch}" | sed 's/^/    /'
+		if [ "$r" == "boot_wrapper" ]; then
+			git --git-dir=../boot-wrapper/.git log -1 | sed 's/^/    /'
+		else
+			git log -1 "${remote}/${!branch}" | sed 's/^/    /'
+		fi
 	done
 }
 
