@@ -361,7 +361,7 @@ create_new_hwpack()
 	download_license_protected_file $url
 	kernel_deb=$(ls kernel_build/test_build/linux-image*.deb | grep -v dbg)
 	rm -rf linaro-image-tools
-	bzr branch lp:linaro-image-tools
+	bzr branch lp:~jcrigby/linaro-image-tools/linaro-image-tools
 	new_hwpack_url=$(python ./linaro-image-tools/linaro-hwpack-replace \
 		-t $orig_hwpack \
 		-p $kernel_deb \
