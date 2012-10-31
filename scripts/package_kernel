@@ -434,7 +434,7 @@ submit_lava_job()
 	true
 }
 
-lava_test()
+finish_up()
 {
 	# save source pkg files to be ssh uploaded
 	#
@@ -483,7 +483,9 @@ lava_test()
 	create_new_hwpack $hwpack_flavour
 	get_binary_url
 	create_eula
-	submit_lava_job
+	test "$do_lava_testing" == "true" && {
+		submit_lava_job
+	}
 }
 
 export scriptname=$(basename $0)
@@ -577,7 +579,7 @@ test "$do_publish_source_pkg" == "true" && {
 }
 
 test "$do_lava_testing" == "true" && {
-	lava_test
+	finish_up
 }
 
 exit 0
