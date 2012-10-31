@@ -578,8 +578,6 @@ test "$do_publish_source_pkg" == "true" && {
 	cd ..
 }
 
-test "$do_lava_testing" == "true" && {
-	finish_up
-}
+finish_up
 
 exit 0
