@@ -486,6 +486,7 @@ finish_up()
 	test "$do_lava_testing" == "true" && {
 		submit_lava_job
 	}
+	true
 }
 
 export scriptname=$(basename $0)
