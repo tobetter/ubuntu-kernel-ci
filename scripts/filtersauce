@@ -133,13 +133,14 @@ process_first_ubuntu_patch()
 {
 	git reset --hard $first_ubuntu_commit
 	git clean -d -f -x
-	git rm -r debian debian.master dropped.txt
+	git rm -rf debian debian.master dropped.txt ||
+		echo thats ok
 	git commit --amend -s -m "$(git log -1 --pretty="SAUCE only changes from %h %s" $first_ubuntu_commit)"
 	git format-patch -1 -o $sauce_patchdir
 
 	git reset --hard $upstream_tag
 	git clean -d -f -x
-	git checkout $first_ubuntu_commit -- debian debian.master dropped.txt
+	git checkout -f $first_ubuntu_commit -- debian debian.master dropped.txt
 	git commit -s -m "$(git log -1 --pretty="Packaging only changes from %h %s" $first_ubuntu_commit)"
 	git format-patch -1 -o $packaging_patchdir
 
@@ -285,12 +286,10 @@ create_debian_linaro_omap_only()
 		| xargs rm 
 	for ts in skipmodule skipabi disable_d_i do_complete_flavour_headers do_timestamp_version skipconfig
 	do
-		echo -e "$ts\t= true" >> debian.linaro/rules.d/armel.mk
 		echo -e "$ts\t= true" >> debian.linaro/rules.d/armhf.mk
 	done
-	sed -i -e "s/flavours.*=.*/flavours = linaro-SOCFLAVOUR/" debian.linaro/rules.d/armel.mk
 	sed -i -e "s/flavours.*=.*/flavours = linaro-SOCFLAVOUR/" debian.linaro/rules.d/armhf.mk
-	sed -i -e 's/archs=".*arm.*$/archs="armel armhf"/' debian.linaro/etc/kernelconfig
+	sed -i -e 's/archs=".*arm.*$/archs="armhf"/' debian.linaro/etc/kernelconfig
 	git add debian.linaro
 	git commit -s -m "LINARO: debian.linaro omap flavour only based on debian.master"
 	true
@@ -299,7 +298,7 @@ create_debian_linaro_omap_only()
 print_vars_file()
 {
 	cat <<- __ENDVARS__
-		arch="armel armhf"
+		arch="armhf"
 		supported="SOCVENDOR SOCFAMILY"
 		desc="SOCVENDOR SOCFAMILY-based systems"
 		target="Targeted towards boards such as SAMPLEBOARDS, etc."
@@ -339,7 +338,7 @@ create_debian_linaro_template_from_omap_only()
 	sed -i \
 		-e '1 s/linux/SRCPKGNAME/' \
 		-e 's/linux-tools-PKGVER-ABINUM/linux-linaro-tools-PKGVER-ABINUM-linaro-SOCFLAVOUR/' \
-		-e 's/Architecture:.*/Architecture: armel armhf/' \
+		-e 's/Architecture:.*/Architecture: armhf/' \
 			debian.linaro/control.stub.in
 	git add debian.linaro/control.stub.in
 
@@ -352,13 +351,10 @@ create_debian_linaro_template_from_omap_only()
 	git add debian.linaro/control.d/flavour-control.stub
 
 	# config files
-	git rm	debian.linaro/config/armel/config.flavour.omap
 	git rm debian.linaro/config/armhf/config.flavour.omap
 	for cfg in \
 		debian.linaro/config/config.common.ubuntu \
-		debian.linaro/config/armel/config.common.armel \
 		debian.linaro/config/armhf/config.common.armhf \
-		debian.linaro/config/armel/config.flavour.linaro-SOCFLAVOUR \
 		debian.linaro/config/armhf/config.flavour.linaro-SOCFLAVOUR
 	do
 		echo "# nothing here yet" > $cfg
@@ -373,7 +369,6 @@ create_debian_linaro_template_from_omap_only()
 	# misc
 	for f in \
 		debian.linaro/d-i/kernel-versions.in \
-		debian.linaro/rules.d/armel.mk \
 		debian.linaro/rules.d/armhf.mk
 	do
 		sed -i -e 's/omap/linaro-SOCFLAVOUR/g' $f
@@ -412,7 +407,7 @@ while (( $# > 0 )) ; do
 			fullauto="true"
 			;;
 		-k|--keeptempbranches)
-			keeptmpbranches="true"
+			keeptempbranches="true"
 			;;
 		-o|--overwrite)
 			overwriteok="true"
