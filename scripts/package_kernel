@@ -397,43 +397,6 @@ create_eula()
 	touch $OUT/EULA.txt
 }
 
-submit_lava_job()
-{
-	must_be_set "LAVA_USER"
-	must_be_set "LAVA_TOKEN" > /dev/null
-
-	jobname="ubuntu-kernel-ci-test-$JOB_NAME-$BUILD_NUMBER"
-
-	# remember if tracing is on and turn it off
-	#unset xtrace
-	#set -o | grep -q 'xtrace.*on' && xtrace='true'
-	#echo "xtrace is $xtrace"
-	#set +x
-
-	jobfile=$OUT/jobfile.json
-	cat ${CIROOTDIR}/scripts/jobfile.tmpl.json > $jobfile
-	sed -i \
-		-e "s#%%ROOTFS_URL%%#$rootfs_url#" \
-		-e "s#%%HWPACK_URL%%#$hwpack_url#" \
-		-e "s#%%JOB_NAME%%#$jobname#" \
-		-e "s#%%DEVICE_TYPE%%#$device_type#" \
-			$jobfile
-	###### this must wait until the hwpack has been copied to snapshots.linaro.org
-	#lava_job_id=$(lava-tool \
-	#	submit-job \
-	#	https://$LAVA_USER:$LAVA_TOKEN@validation.linaro.org/lava-server/RPC2/ \
-	#	$jobfile | \
-	#		grep -v EXPERIMENTAL | cut -d ":" -f 2 | tr -d ' ')
-
-	# turn tracing back on if it was on before
-	#test "$xtrace" = "true" && set -x
-
-	#lava_job_url="http://validation.linaro.org/lava-server/scheduler/job/$lava_job_id"
-	#pvar "lava_job_id" >> $OUT/jobinfo.sh
-	#pvar "lava_job_url" >> $OUT/jobinfo.sh
-	true
-}
-
 finish_up()
 {
 	# save source pkg files to be ssh uploaded
@@ -450,35 +413,27 @@ finish_up()
 	case $job_flavour in
 		lt-omap|llt-omap)
 			hwpack_flavour="lt-panda"
-			device_type="panda"
 			;;
 		lt-origen|llt-origen)
 			hwpack_flavour="leb-origen"
-			device_type="origen"
 			;;
 		lt-u8500|llt-u8500)
 			hwpack_flavour="lt-snowball"
-			device_type="snowball_sd"
 			;;
 		lt-vexpress|llt-vexpress)
 			hwpack_flavour="lt-vexpress"
-			device_type="vexpress-a9"
 			;;
 		omap)
 			hwpack_flavour="panda"
-			device_type="panda"
 			;;
 		origen)
 			hwpack_flavour="origen"
-			device_type="origen"
 			;;
 		u8500)
 			hwpack_flavour="snowball"
-			device_type="snowball_sd"
 			;;
 		vexpress)
 			hwpack_flavour="vexpress"
-			device_type="vexpress-a9"
 			;;
 		*)
 			carp "unsupported job flavour '$job_flavour'"
@@ -487,9 +442,6 @@ finish_up()
 	create_new_hwpack $hwpack_flavour
 	get_binary_url
 	create_eula
-	test "$do_lava_testing" == "true" && {
-		submit_lava_job
-	}
 	true
 }
 
