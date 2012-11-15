@@ -76,6 +76,12 @@ must_be_set()
 	test "${!1}" || carp "$1 must be set in env"
 }
 
+only_one_set()
+{
+	[ "${!1}" -a "${!2}" ] && carp "only $1 or $2 can be set"
+	true
+}
+
 should_be_set()
 {
 	test "${!1}" && return 0
@@ -102,9 +108,22 @@ check_settings()
 	should_be_set "board_config_repo" "kernel_repo"
 	should_be_set "board_config_branch" "kernel_branch"
 
+	# use frag or frags but never both
+	only_one_set "linaro_base_config_frag" "linaro_base_config_frags"
+	only_one_set "ubuntu_config_frag" "ubuntu_config_frags"
+	only_one_set "board_config_frag" "board_config_frags"
+
+	# set *_frag to defaults
 	: ${linaro_base_config_frag:="linaro/configs/linaro-base.conf"}
 	: ${ubuntu_config_frag:="linaro/configs/ubuntu.conf"}
 	: ${board_config_frag:="linaro/configs/$(echo $SOCFLAVOUR | sed 's/l\?lt-//').conf"}
+
+
+	# default *_frags to *_frag and then only use them from here on out
+	: ${linaro_base_config_frags:="$linaro_base_config_frag"}
+	: ${ubuntu_config_frags:="$ubuntu_config_frag"}
+	: ${board_config_frags:="$board_config_frag"}
+
 	: ${third_version_digit:=0}
 }
 
@@ -158,11 +177,11 @@ setup_kernel_git()
 		debian.linaro
 	git checkout remotes/board_config_remote/$board_config_branch \
 		-- \
-		$board_config_frag
+		$board_config_frags
 	git checkout remotes/ubuntu_and_base_config_remote/$ubuntu_and_base_config_branch \
 		-- \
-		$linaro_base_config_frag \
-		$ubuntu_config_frag
+		$linaro_base_config_frags \
+		$ubuntu_config_frags
 	git commit -s -m "added packaging template and linaro/configs"
 }
 
@@ -200,9 +219,9 @@ add_config()
 {
 	: ${linaroconfigsboardflavour:=$(echo $SOCFLAVOUR | sed s/lt-//)}
 	ARCH=arm ./scripts/kconfig/merge_config.sh \
-		$linaro_base_config_frag \
-		$ubuntu_config_frag \
-		$board_config_frag
+		$linaro_base_config_frags \
+		$ubuntu_config_frags \
+		$board_config_frags
 	test -d debian.linaro/config/armel &&
 		cp .config debian.linaro/config/armel/config.flavour.linaro-$SOCFLAVOUR
 	cp .config debian.linaro/config/armhf/config.flavour.linaro-$SOCFLAVOUR
@@ -230,12 +249,12 @@ sourceinfo()
 		case $r in
 			board_config)
 				echo "Config frag:"
-				echo "  $board_config_frag"
+				echo "  $board_config_frags"
 				;;
 			ubuntu_and_base_config)
 				echo "Config frags:"
-				echo "  $linaro_base_config_frag"
-				echo "  $ubuntu_config_frag"
+				echo "  $linaro_base_config_frags"
+				echo "  $ubuntu_config_frags"
 				;;
 		esac
 		echo "Head:"
@@ -501,6 +520,10 @@ while (( $# > 0 )) ; do
 done
 
 check_settings
+
+test "$config_check_only" == "true" && {
+	exit 0
+}
 
 test "$do_merge" == "true" && {
 	setup_kernel_git 	# cd's to kernel_build/linux
