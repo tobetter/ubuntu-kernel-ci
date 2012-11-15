@@ -472,6 +472,10 @@ finish_up()
 			hwpack_flavour="origen"
 			device_type="origen"
 			;;
+		u8500)
+			hwpack_flavour="snowball"
+			device_type="snowball_sd"
+			;;
 		vexpress)
 			hwpack_flavour="vexpress"
 			device_type="vexpress-a9"
