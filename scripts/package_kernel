@@ -203,7 +203,8 @@ add_config()
 		$linaro_base_config_frag \
 		$ubuntu_config_frag \
 		$board_config_frag
-	cp .config debian.linaro/config/armel/config.flavour.linaro-$SOCFLAVOUR
+	test -d debian.linaro/config/armel &&
+		cp .config debian.linaro/config/armel/config.flavour.linaro-$SOCFLAVOUR
 	cp .config debian.linaro/config/armhf/config.flavour.linaro-$SOCFLAVOUR
 	fdr clean
 	fdr defaultconfigs
