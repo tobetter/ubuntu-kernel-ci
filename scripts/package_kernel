@@ -388,7 +388,7 @@ create_eula()
 	touch $OUT/EULA.txt
 }
 
-create_hwpack()
+create_artifact_dir()
 {
 	# save source pkg files to be ssh uploaded
 	#
@@ -397,7 +397,11 @@ create_hwpack()
 	mkdir -p $OUT
 	cat /dev/null > $OUT/jobinfo.sh
 	pvar "release_tag" >> $OUT/jobinfo.sh
+}
 
+
+create_hwpack()
+{
 	# map job_flavour to hwpack_flavour
 	#
 	job_flavour=${job_flavour/-3.?}
@@ -478,6 +482,7 @@ test "$JENKINS_URL" && {
 	do_publish_release_tag="true"
 	do_test_build_source_pkg="true"
 	do_publish_source_pkg="true"
+	do_create_artifact_dir="true"
 	do_create_hwpack="true"
 }
 
@@ -554,6 +559,10 @@ test "$do_publish_source_pkg" == "true" && {
 	cd kernel_build
 	publish_source_pkg
 	cd ..
+}
+
+test "$do_create_artifact_dir" == "true" && {
+	create_artifact_dir
 }
 
 test "$do_create_hwpack" == "true" && {
