@@ -367,35 +367,6 @@ get_hwpack_url()
 	echo $url
 }
 
-create_new_hwpack()
-{
-	url="http://snapshots.linaro.org/$distribution/hwpacks/$1/latest"
-	wget -q -k --no-cookies \
-		--header "Cookie: redirectlicensephp=200" \
-		$url \
-		-O tmp.html
-	url=$(grep -Po '(?<=href=")http:.*tar.gz(?=">)' tmp.html)
-	rm tmp.html
-	orig_hwpack=$(basename $url)
-	#wget -N -q $url
-	download_license_protected_file $url
-	kernel_deb=$(ls kernel_build/test_build/linux-image*.deb | grep -v dbg)
-	rm -rf linaro-image-tools
-	bzr branch lp:linaro-image-tools
-	new_hwpack_url=$(python ./linaro-image-tools/linaro-hwpack-replace \
-		-t $orig_hwpack \
-		-p $kernel_deb \
-		-r linux-image \
-		-n $BUILD_NUMBER)
-	hwpack_name=$(basename $new_hwpack_url)
-
-	# save for upload
-	mv $hwpack_name $OUT
-	pvar "hwpack_name" >> $OUT/jobinfo.sh
-	hwpack_url=$(get_hwpack_url $hwpack_name)
-	pvar "hwpack_url" >> $OUT/jobinfo.sh
-}
-
 get_binary_url()
 {
 	url="http://snapshots.linaro.org/$distribution/images/nano"
@@ -417,7 +388,7 @@ create_eula()
 	touch $OUT/EULA.txt
 }
 
-finish_up()
+create_hwpack()
 {
 	# save source pkg files to be ssh uploaded
 	#
@@ -459,7 +430,32 @@ finish_up()
 			carp "unsupported job flavour '$job_flavour'"
 			;;
 	esac
-	create_new_hwpack $hwpack_flavour
+
+	url="http://snapshots.linaro.org/$distribution/hwpacks/$hwpack_flavour/latest"
+	wget -q -k --no-cookies \
+		--header "Cookie: redirectlicensephp=200" \
+		$url \
+		-O tmp.html
+	url=$(grep -Po '(?<=href=")http:.*tar.gz(?=">)' tmp.html)
+	rm tmp.html
+	orig_hwpack=$(basename $url)
+	#wget -N -q $url
+	download_license_protected_file $url
+	kernel_deb=$(ls kernel_build/test_build/linux-image*.deb | grep -v dbg)
+	rm -rf linaro-image-tools
+	bzr branch lp:linaro-image-tools
+	new_hwpack_url=$(python ./linaro-image-tools/linaro-hwpack-replace \
+		-t $orig_hwpack \
+		-p $kernel_deb \
+		-r linux-image \
+		-n $BUILD_NUMBER)
+	hwpack_name=$(basename $new_hwpack_url)
+
+	# save for upload
+	mv $hwpack_name $OUT
+	pvar "hwpack_name" >> $OUT/jobinfo.sh
+	hwpack_url=$(get_hwpack_url $hwpack_name)
+	pvar "hwpack_url" >> $OUT/jobinfo.sh
 	get_binary_url
 	create_eula
 	true
@@ -482,6 +478,7 @@ test "$JENKINS_URL" && {
 	do_publish_release_tag="true"
 	do_test_build_source_pkg="true"
 	do_publish_source_pkg="true"
+	do_create_hwpack="true"
 }
 
 test "$running_standalone" == "true" && {
@@ -559,6 +556,8 @@ test "$do_publish_source_pkg" == "true" && {
 	cd ..
 }
 
-finish_up
+test "$do_create_hwpack" == "true" && {
+	create_hwpack
+}
 
 exit 0
