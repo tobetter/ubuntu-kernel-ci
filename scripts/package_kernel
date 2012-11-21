@@ -331,7 +331,11 @@ test_build_source_pkg()
 	test "$use_ccache" = "true" && {
 		sed -i -e 's/CC.*=.*CROSS_COMPILE.gcc/CC = ccache $(CROSS_COMPILE)gcc/' Makefile
 	}
- 	time debuild --no-lintian -j4 -us -uc -b -aarmhf
+	for mk in debian.linaro/rules.d/*.mk
+	do
+		sed -i -e 's/do_tools.*=.*/do_tools = false/' $mk
+	done
+	time debuild --no-lintian -j4 -us -uc -b -aarmhf
 	cd ../..
 }
 
