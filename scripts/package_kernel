@@ -346,6 +346,15 @@ __END__
 	true
 }
 
+install_custom_toolchain()
+{
+	export debuild_prepend_path="--prepend-path $HOME/tc/bin"
+	test -d ~/tc/bin && return 0
+	mkdir -p ~/tc
+	tar --strip-components=1 -C ~/tc -xf gcc-linaro-aarch64*.tar.*
+	true
+}
+
 test_build_source_pkg()
 {
 	mkdir -p test_build
@@ -355,7 +364,7 @@ test_build_source_pkg()
 	test "$use_ccache" = "true" && {
 		sed -i -e 's/CC.*=.*CROSS_COMPILE.gcc/CC = ccache $(CROSS_COMPILE)gcc/' Makefile
 	}
-	time debuild --prepend-path="$debuild_prepend_path" --no-lintian -j4 -us -uc -b -a$DEBARCH
+	time debuild $debuild_prepend_path --no-lintian -j4 -us -uc -b -a$DEBARCH
 	cd ..
 	ln *.deb *.changes ../../out
 }
@@ -576,10 +585,6 @@ while (( $# > 0 )) ; do
 			job_flavour=${2/.cfg/}
 			shift
 			;;
-		--prepend-path)
-			debuild_prepend_path=$2
-			shift
-			;;
 		+([[:alpha:]_])*([[:word:]])=+([-[:word:]:/.]))
 			eval "export $1"
 			;;
@@ -621,6 +626,8 @@ test "$do_publish_release_tag" == "true" && {
 }
 
 test "$do_test_build_source_pkg" == "true" && {
+	test -f gcc-linaro-aarch64*.tar.* && install_custom_toolchain
+	test -d ~/tc/bin && install_custom_toolchain
 	cd kernel_build
 	test_build_source_pkg
 	cd ..
