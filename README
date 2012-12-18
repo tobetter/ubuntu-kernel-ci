@@ -1,6 +1,5 @@
 configs:
-  Configuration files to run to setup env vars before running the package_kernel
-  script in scripts.
+  Configuration files containing settings for packaging kernels.
 
   Naming convention:
     variant-socflavour-version.cfg
@@ -26,37 +25,27 @@ configs:
       vexpress-3.5.cfg
 
   Contents:
-    Here is an example config for an origen 3.5 kernel using the samsung landing
-    team tracking kernel when it was tracking 3.5. The comment lines are not in the
-    actual file and are here to serve as annontaton.
+    Here is an example config for an origen 3.7 kernel using the linux linaro kernel.
+    The comment lines are not in the actual file and are here to serve as annontaton.
 
-      #!/bin/bash
-      # Samsung LT git repo, tracking branch
-      echo "export kernel_repo=git://git.linaro.org/landing-teams/working/samsung/kernel.git"
-      echo "export kernel_branch=tracking"
-      # Use the 3.5 packaging template
-      echo "export linaro_ubuntu_packaging_repo=git://git.linaro.org/ubuntu/linux-linaro-quantal.git"
-      echo "export linaro_ubuntu_packaging_branch=linaro-ubuntu-packaging-3.5"
-      # SOCFLAVOUR ends up in source and binary package names to make them unique so they are
-      # all standalone.  The other entries here end up going into descriptions in the debian
-      # control file.
-      echo "export SOCFLAVOUR=lt-origen"
-      echo "export SOCVENDOR=Samsung"
-      echo "export SOCFAMILY=ORIGEN"
-      echo "export SAMPLEBOARDS=origen"
-      # This is just to make cloning faster.
-      echo "export nearby_git=~/reference-git"
-      # This is used to pick a board conf from linaro/configs/BOARD.conf in case SOCFLAVOUR
-      # is not the right thing to use.
-      echo "export linaroconfigsboardflavour=origen"
-      # What distro to put in the changelog header
-      echo "export distribution=precise"
-      # repo and branch for core and ubuntu config fragments
-      echo "export ubuntu_and_base_config_repo=git://git.linaro.org/kernel/configs.git"
-      echo "export ubuntu_and_base_config_branch=config-core-3.4"
-      # repo and branch for board config fragment
-      echo "export board_config_repo=git://git.linaro.org/kernel/configs.git"
-      echo "export board_config_branch=config-boards-3.4"
+	#!/bin/bash
+	export kernel_repo=git://git.linaro.org/kernel/linux-linaro-tracking.git
+	export kernel_branch=linux-linaro
+	export board_config_repo=$kernel_repo
+	export board_config_branch=$kernel_branch
+	export board_config_frags="linaro/configs/origen.conf"
+	export distribution=quantal
+	export linaroconfigsboardflavour=origen
+	export linaro_ubuntu_packaging_repo=git://git.linaro.org/ubuntu/linux-linaro-raring.git
+	export linaro_ubuntu_packaging_branch=linaro-ubuntu-packaging-3.7
+	export nearby_git=~/reference-git
+	export SAMPLEBOARDS=origen
+	export SOCFAMILY=ORIGEN
+	export SOCFLAVOUR=origen
+	export SOCVENDOR=Samsung
+	export ubuntu_and_base_config_repo=$kernel_repo
+	export ubuntu_and_base_config_branch=$kernel_branch
+	export ubuntu_config_frag=linaro/configs/ubuntu.conf
 
 scripts:
   package_kernel -- a script that will package a kernel using info from env vars likely
@@ -64,15 +53,16 @@ scripts:
   filtersauce -- maintenance script for creating the linaro-ubuntu-packaging trees
 
 usage:
-  Create your own config using an existing one as an example or just use an existing one.  Then
-  run it to set up some vars and the just run the package_kernel script:
+  Create your own config using an existing one as starting point.  Then run the package_kernel
+  script:
+	~/work/git-trees/ubuntu-kernel-ci/ubuntu-kernel-ci/scripts/package_kernel --cfg origen-3.7.cfg
 
-  package_kernel --cfg lt-omap-3.4.cfg foo=bar foo1=bar1
-  the var=value settings are used to overide settings in the .cfg file
-  
+gotchya's:
+	The config scripts all have nearby_git set to ~/reference-git.  You will need a symlink to an
+	actuall git repo there or change nearby_git in your config to point to one.
 
 It's just that easy (well it should be after all the bugs are worked out).  When the script 
 completes there should be a directory called kernel_build.  Just cd into it and run fdr clean
 (fakeroot ./debian/rules) and debuild:
   fdr clean
-  time debuild --no-lintian -j8 -eCROSS_COMPILE=arm-linux-gnueabi- -us -uc -b -aarmel 
+  time debuild --no-lintian -j5 -eCROSS_COMPILE=arm-linux-gnueabi- -us -uc -b -aarmel 
