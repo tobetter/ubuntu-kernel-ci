@@ -182,9 +182,6 @@ setup_kernel_git()
 	git checkout -b working_branch \
 		remotes/kernel_remote/$kernel_branch
 	git reset --hard remotes/kernel_remote/$kernel_branch
-	test "$do_revert_hack" == "true" && {
-		git revert --no-edit $revert_commit || echo nothing to revert
-	}
 	git clean -d -f -x
 	test -d debian && git rm -r debian
 	test -d debian.linaro && git rm -r debian.linaro
@@ -546,7 +543,6 @@ lava_test()
 	create_eula
 	submit_lava_job
 }
-
 
 export scriptname=$(basename $0)
 trap cleanup EXIT
