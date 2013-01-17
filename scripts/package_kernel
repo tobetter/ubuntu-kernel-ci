@@ -267,7 +267,7 @@ fixup_vars_file()
 add_config()
 {
 	: ${linaroconfigsboardflavour:=$(echo $SOCFLAVOUR | sed s/lt-//)}
-	ARCH=arm ./scripts/kconfig/merge_config.sh \
+	ARCH=$KARCH ./scripts/kconfig/merge_config.sh \
 		$linaro_base_config_frags \
 		$ubuntu_config_frags \
 		$board_config_frags
