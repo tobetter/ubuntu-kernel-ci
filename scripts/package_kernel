@@ -7,6 +7,7 @@ shopt -s extglob
 #
 export CIROOTDIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 export PATH="$CIROOTDIR/scripts:$CIROOTDIR/configs:$PATH"
+export debuild_prepend_path=""
 
 # exit with error message and bad exit status
 #
@@ -30,6 +31,12 @@ infoexit()
 {
 	echo -e $1
 	exit 0
+}
+
+info()
+{
+	echo $1
+	true
 }
 
 # echo message if being verbose
@@ -71,6 +78,13 @@ changelog_get()
 		| sed -e "s/$2: //"
 }
 
+set_if_notset()
+{
+	test "${!1}" && return 0
+	info "defaulting $1 to $2"
+	eval "export $1=$2"
+}
+
 must_be_set()
 {
 	test "${!1}" || carp "$1 must be set in env"
@@ -92,6 +106,10 @@ should_be_set()
 
 check_settings()
 {
+	set_if_notset "KARCH" "arm"
+	set_if_notset "DEBARCH" "armhf"
+	set_if_notset "DEBARCHES" "armhf armel"
+
 	must_be_set "kernel_repo"
 	must_be_set "kernel_branch"
 	must_be_set "linaro_ubuntu_packaging_repo"
@@ -127,6 +145,13 @@ check_settings()
 	: ${third_version_digit:=0}
 }
 
+cleanup_previous_build()
+{
+	test -d out &&
+		rm -rf out
+	mkdir out
+}
+
 #
 # NB - Everything from here until noted runs in kernel_build/linux directory
 #
@@ -151,6 +176,16 @@ setup_kernel_git()
 	git remote add -t $kernel_branch \
 		kernel_remote \
 		$kernel_repo
+	test "$boot_wrapper_repo" && {
+		boot_wrapper_desc="Boot Wrapper"
+		rm -rf ../boot-wrapper
+		cd ..
+			git clone $boot_wrapper_repo boot-wrapper
+			cd boot-wrapper
+			git branch -r
+				git checkout origin/$boot_wrapper_branch
+		}
+	cd ../linux
 	linaro_ubuntu_packaging_desc="Packaging template"
 	git remote add -t $linaro_ubuntu_packaging_branch \
 		linaro_ubuntu_packaging_remote \
@@ -171,6 +206,13 @@ setup_kernel_git()
 	git clean -d -f -x
 	test -d debian && git rm -r debian
 	test -d debian.linaro && git rm -r debian.linaro
+	test "$boot_wrapper_repo" && {
+		test -d linaro/boot-wrapper && rm -rf linaro/boot-wrapper
+		mkdir -p linaro
+		cp -a ../boot-wrapper/ linaro
+		rm -rf linaro/boot-wrapper/.git
+		git add linaro/boot-wrapper/
+	}
 	git checkout remotes/linaro_ubuntu_packaging_remote/$linaro_ubuntu_packaging_branch \
 		-- \
 		debian \
@@ -192,6 +234,19 @@ fixup_socflavour_contents()
 		sed -i -e "s/SOCFLAVOUR/$SOCFLAVOUR/g" $f
 		git add -f $f
 	done
+}
+
+fixup_kernel_version()
+{
+	test "$auto_kernel_version" = "true" && {
+		kv=$(make kernelversion)
+		kv=${kv/.?-rc*/}
+		kv=${kv/.0/}
+		sed -i \
+			-e "1 s/.*/linux-linaro-SOCFLAVOUR-$kv ($kv.0-1.1ubuntu1) UNRELEASED; urgency=low/" \
+			debian.linaro/changelog
+	}
+	true
 }
 
 fixup_socflavour_filenames()
@@ -218,13 +273,14 @@ fixup_vars_file()
 add_config()
 {
 	: ${linaroconfigsboardflavour:=$(echo $SOCFLAVOUR | sed s/lt-//)}
-	ARCH=arm ./scripts/kconfig/merge_config.sh \
+	ARCH=$KARCH ./scripts/kconfig/merge_config.sh \
 		$linaro_base_config_frags \
 		$ubuntu_config_frags \
 		$board_config_frags
-	test -d debian.linaro/config/armel &&
-		cp .config debian.linaro/config/armel/config.flavour.linaro-$SOCFLAVOUR
-	cp .config debian.linaro/config/armhf/config.flavour.linaro-$SOCFLAVOUR
+	for a in $DEBARCHES
+	do
+		cp .config debian.linaro/config/$a/config.flavour.linaro-$SOCFLAVOUR
+	done
 	fdr clean
 	fdr defaultconfigs
 	git add debian.linaro/config
@@ -234,11 +290,13 @@ sourceinfo()
 {
 	for r in \
 		kernel \
+		boot_wrapper \
 		board_config \
 		ubuntu_and_base_config \
 		linaro_ubuntu_packaging
 	do
 		desc=${r}_desc
+		test "${!desc}" || continue
 		repo=${r}_repo
 		branch=${r}_branch
 		remote=${r}_remote
@@ -258,7 +316,11 @@ sourceinfo()
 				;;
 		esac
 		echo "Head:"
-		git log -1 "${remote}/${!branch}" | sed 's/^/    /'
+		if [ "$r" == "boot_wrapper" ]; then
+			git --git-dir=../boot-wrapper/.git log -1 | sed 's/^/    /'
+		else
+			git log -1 "${remote}/${!branch}" | sed 's/^/    /'
+		fi
 	done
 }
 
@@ -298,7 +360,7 @@ finish_changelog_and_tag()
 create_source_pkg()
 {
 	fdr clean
-	debuild --no-lintian -sa -S $keyarg -I -i -aarmhf
+	debuild --no-lintian -sa -S $keyarg -I -i -a$DEBARCH
 }
 
 publish_release_tag()
@@ -322,6 +384,15 @@ __END__
 	true
 }
 
+install_custom_toolchain()
+{
+	export debuild_prepend_path="--prepend-path $HOME/tc/bin"
+	test -d ~/tc/bin && return 0
+	mkdir -p ~/tc
+	tar --strip-components=1 -C ~/tc -xf gcc-linaro-aarch64*.tar.*
+	true
+}
+
 test_build_source_pkg()
 {
 	mkdir -p test_build
@@ -335,8 +406,9 @@ test_build_source_pkg()
 	do
 		sed -i -e 's/do_tools.*=.*/do_tools = false/' $mk
 	done
-	time debuild --no-lintian -j4 -us -uc -b -aarmhf
-	cd ../..
+	time debuild $debuild_prepend_path --no-lintian -j4 -us -uc -b -a$DEBARCH
+	cd ..
+	ln *.deb *.changes ../../out
 }
 
 publish_source_pkg()
@@ -433,6 +505,10 @@ create_hwpack()
 			;;
 		vexpress)
 			hwpack_flavour="vexpress"
+			;;
+		vexpress64)
+			hwpack_flavour="vexpress64"
+			device_type="vexpress64"
 			;;
 		*)
 			carp "unsupported job flavour '$job_flavour'"
@@ -532,7 +608,9 @@ test "$config_check_only" == "true" && {
 }
 
 test "$do_merge" == "true" && {
-	setup_kernel_git 	# cd's to kernel_build/linux
+	cleanup_previous_build
+	setup_kernel_git	# cd's to kernel_build/linux
+	fixup_kernel_version
 	fixup_socflavour_contents
 	fixup_socflavour_filenames
 	fixup_vars_file
@@ -544,7 +622,9 @@ test "$do_merge" == "true" && {
 test "$do_create_source_pkg" == "true" && {
 	cd kernel_build/linux
 	create_source_pkg
-	cd ../..
+	cd ..
+	ln *.tar.gz *.dsc *.changes ../out
+	cd ..
 }
 
 test "$do_publish_release_tag" == "true" && {
@@ -554,6 +634,8 @@ test "$do_publish_release_tag" == "true" && {
 }
 
 test "$do_test_build_source_pkg" == "true" && {
+	test -f gcc-linaro-aarch64*.tar.* && install_custom_toolchain
+	test -d ~/tc/bin && install_custom_toolchain
 	cd kernel_build
 	test_build_source_pkg
 	cd ..
