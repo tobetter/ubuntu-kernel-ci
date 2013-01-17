@@ -176,13 +176,15 @@ setup_kernel_git()
 	git remote add -t $kernel_branch \
 		kernel_remote \
 		$kernel_repo
-	boot_wrapper_desc="Boot Wrapper"
-	rm -rf ../boot-wrapper
-	cd ..
-		git clone $boot_wrapper_repo boot-wrapper
-		cd boot-wrapper
-		git branch -r
-			git checkout origin/$boot_wrapper_branch
+	test "$boot_wrapper_repo" && {
+		boot_wrapper_desc="Boot Wrapper"
+		rm -rf ../boot-wrapper
+		cd ..
+			git clone $boot_wrapper_repo boot-wrapper
+			cd boot-wrapper
+			git branch -r
+				git checkout origin/$boot_wrapper_branch
+		}
 	cd ../linux
 	linaro_ubuntu_packaging_desc="Packaging template"
 	git remote add -t $linaro_ubuntu_packaging_branch \
@@ -204,9 +206,13 @@ setup_kernel_git()
 	git clean -d -f -x
 	test -d debian && git rm -r debian
 	test -d debian.linaro && git rm -r debian.linaro
-	mkdir -p linaro
-	cp -a ../boot-wrapper/ linaro
-	git add linaro/boot-wrapper/
+	test "$boot_wrapper_repo" && {
+		test -d linaro/boot-wrapper && rm -rf linaro/boot-wrapper
+		mkdir -p linaro
+		cp -a ../boot-wrapper/ linaro
+		rm -rf linaro/boot-wrapper/.git
+		git add linaro/boot-wrapper/
+	}
 	git checkout remotes/linaro_ubuntu_packaging_remote/$linaro_ubuntu_packaging_branch \
 		-- \
 		debian \
