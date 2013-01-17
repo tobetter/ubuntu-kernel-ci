@@ -409,6 +409,7 @@ test_build_source_pkg()
 	time debuild $debuild_prepend_path --no-lintian -j4 -us -uc -b -a$DEBARCH
 	cd ..
 	ln *.deb *.changes ../../out
+	cd ..
 }
 
 publish_source_pkg()
