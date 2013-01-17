@@ -211,6 +211,19 @@ fixup_socflavour_contents()
 	done
 }
 
+fixup_kernel_version()
+{
+	test "$auto_kernel_version" = "true" && {
+		kv=$(make kernelversion)
+		kv=${kv/.?-rc*/}
+		kv=${kv/.0/}
+		sed -i \
+			-e "1 s/.*/linux-linaro-SOCFLAVOUR-$kv ($kv.0-1.1ubuntu1) UNRELEASED; urgency=low/" \
+			debian.linaro/changelog
+	}
+	true
+}
+
 fixup_socflavour_filenames()
 {
 	for f in $(find debian.linaro/ -type f -name '*SOCFLAVOUR*')
@@ -603,6 +616,7 @@ check_settings
 test "$do_merge" == "true" && {
 	cleanup_previous_build
 	setup_kernel_git	# cd's to kernel_build/linux
+	fixup_kernel_version
 	fixup_socflavour_contents
 	fixup_socflavour_filenames
 	fixup_vars_file
