@@ -6,7 +6,9 @@ shopt -s extglob
 
 # add directory containing this script to PATH
 #
+export DEFAULT_PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 export CIROOTDIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+export TCBINDIR="$HOME/tc/bin"
 export PATH="$CIROOTDIR/scripts:$CIROOTDIR/configs:$PATH"
 
 # exit with error message and bad exit status
@@ -405,7 +407,7 @@ test_build_source_pkg()
 	do
 		sed -i -e 's/do_tools.*=.*/do_tools = false/' $mk
 	done
-	time debuild --prepend-path=$HOME/tc/bin --no-lintian -us -uc -b -a$DEBARCH -j`getconf _NPROCESSORS_ONLN`
+	time debuild --set-envvar=PATH="$TCBINDIR:$DEFAULT_PATH" --prepend-path=$TCBINDIR --no-lintian -us -uc -b -a$DEBARCH -j`getconf _NPROCESSORS_ONLN`
 	cd ..
 	ln *.deb *.changes ../../out
 	cd ..
