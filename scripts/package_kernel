@@ -469,7 +469,7 @@ create_artifact_dir()
 {
 	# save source pkg files to be ssh uploaded
 	#
-	rm -rf out
+	#rm -rf out
 	OUT=out/$BUILD_NUMBER
 	mkdir -p $OUT
 	cat /dev/null > $OUT/jobinfo.sh
