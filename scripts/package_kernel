@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -x
 set -e
 shopt -s extglob
@@ -7,7 +8,6 @@ shopt -s extglob
 #
 export CIROOTDIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 export PATH="$CIROOTDIR/scripts:$CIROOTDIR/configs:$PATH"
-export debuild_prepend_path=""
 
 # exit with error message and bad exit status
 #
@@ -386,7 +386,6 @@ __END__
 
 install_custom_toolchain()
 {
-	export debuild_prepend_path="--prepend-path $HOME/tc/bin"
 	test -d ~/tc/bin && return 0
 	mkdir -p ~/tc
 	tar --strip-components=1 -C ~/tc -xf gcc-linaro-aarch64*.tar.*
@@ -406,7 +405,7 @@ test_build_source_pkg()
 	do
 		sed -i -e 's/do_tools.*=.*/do_tools = false/' $mk
 	done
-	time debuild $debuild_prepend_path --no-lintian -us -uc -b -a$DEBARCH -j`getconf _NPROCESSORS_ONLN`
+	time debuild --prepend-path=$HOME/tc/bin --no-lintian -us -uc -b -a$DEBARCH -j`getconf _NPROCESSORS_ONLN`
 	cd ..
 	ln *.deb *.changes ../../out
 	cd ..
