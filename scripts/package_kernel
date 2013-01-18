@@ -362,7 +362,7 @@ finish_changelog_and_tag()
 create_source_pkg()
 {
 	fdr clean
-	debuild --no-lintian -sa -S $keyarg -I -i -a$DEBARCH
+	dpkg-buildpackage -sa -S $keyarg -I -i -a$DEBARCH
 }
 
 publish_release_tag()
@@ -578,7 +578,7 @@ test "$running_standalone" == "true" && {
 
 # process command line arguments
 #
-keyarg=""
+keyarg="-us -uc"
 while (( $# > 0 )) ; do
 	echo arg is $1
 	case $1 in
