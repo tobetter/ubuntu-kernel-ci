@@ -111,6 +111,7 @@ check_settings()
 	set_if_notset "KARCH" "arm"
 	set_if_notset "DEBARCH" "armhf"
 	set_if_notset "DEBARCHES" "armhf armel"
+	set_if_notset "PUBLISH_PPA" "linaro-maintainers/staging-overlay"
 
 	must_be_set "kernel_repo"
 	must_be_set "kernel_branch"
@@ -417,7 +418,7 @@ test_build_source_pkg()
 
 publish_source_pkg()
 {
-	dput ppa:linaro-maintainers/kernel *.changes
+	dput ppa:$PUBLISH_PPA *.changes
 }
 
 download_license_protected_file()
