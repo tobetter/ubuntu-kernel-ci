@@ -407,6 +407,8 @@ test_build_source_pkg()
 	do
 		sed -i -e 's/do_tools.*=.*/do_tools = false/' $mk
 	done
+	# pass --set-envvar and --prepend-path to set the toolchain directory path
+	# for some reason, --prepend-path isn't always enough
 	time debuild --set-envvar=PATH="$TCBINDIR:$DEFAULT_PATH" --prepend-path=$TCBINDIR --no-lintian -us -uc -b -a$DEBARCH -j`getconf _NPROCESSORS_ONLN`
 	cd ..
 	ln *.deb *.changes ../../out
