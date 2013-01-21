@@ -59,10 +59,10 @@ case "$kernel_name":
 	linaro_base_config_frag="$linaro_base_config_frag";
 	linaro_ubuntu_packaging_repo="$linaro_ubuntu_packaging_repo";
 	linaro_ubuntu_packaging_branch="$linaro_ubuntu_packaging_branch";
-	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel/+packages?field.name_filter=$kernel_name";
-	ppacopyurl="https://code.launchpad.net/~linaro-maintainers/+archive/kernel/+copy-packages?field.name_filter=$kernel_name";
+	ppaurl="https://code.launchpad.net/~linaro-maintainers/+archive/staging-overlay/+packages?field.name_filter=$kernel_name";
+	ppacopyurl="https://code.launchpad.net/~linaro-maintainers/+archive/staging-overlay/+copy-packages?field.name_filter=$kernel_name";
 	lavaurl="$lavaurl";
-	ppaname="Linaro Kernel PPA";
+	ppaname="Staging Overlay PPA";
 	maintainermail="mailto:john.rigby@linaro.org"
 	maintainername="John Rigby"
 	break;
