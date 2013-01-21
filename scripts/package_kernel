@@ -455,7 +455,7 @@ get_binary_url()
 		--header "Cookie: redirectlicensephp=200" \
 		$url \
 		-O tmp.html
-	url=$(grep -Po '(?<=href=").*precise.images.nano.*/\d\d\d?/?(?=">)' tmp.html | sort -V | tail -1)
+	url=$(grep -Po "(?<=href=\").*$distribution*/\d\d\d?/?(?=\">)" tmp.html | sort -V | tail -1)
 	wget -q -k --no-cookies \
 		--header "Cookie: redirectlicensephp=200" \
 		$url \
@@ -657,7 +657,7 @@ test "$do_create_artifact_dir" == "true" && {
 }
 
 test "$do_create_hwpack" == "true" && {
-	create_hwpack
+	create_hwpack || echo "create_hwpack failed but not failing job"
 }
 
 exit 0
