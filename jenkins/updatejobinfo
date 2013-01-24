@@ -63,8 +63,8 @@ case "$kernel_name":
 	ppacopyurl="https://code.launchpad.net/~linaro-maintainers/+archive/staging-overlay/+copy-packages?field.name_filter=$kernel_name";
 	lavaurl="$lavaurl";
 	ppaname="Staging Overlay PPA";
-	maintainermail="mailto:john.rigby@linaro.org"
-	maintainername="John Rigby"
+	maintainermail="mailto:linaro-pkg@lists.launchpad.net"
+	maintainername="Linaro Packagers"
 	break;
 __END_OF_PER__
 }
