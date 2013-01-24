@@ -8,9 +8,9 @@ shopt -s extglob
 #
 export DEFAULT_PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 export CIROOTDIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
-export TCBINDIR="$HOME/tc/bin"
-export TOOLCHAIN="gcc-linaro-aarch64-linux-gnu-4.7-2012.12-20121214_linux.tar.bz2"
+export TCBINDIR=${TCBINDIR:-"$HOME/tc/bin"}
 export PATH="$CIROOTDIR/scripts:$CIROOTDIR/configs:$PATH"
+toolchain_url=${toolchain_url:-}
 
 # exit with error message and bad exit status
 #
@@ -391,6 +391,9 @@ __END__
 install_custom_toolchain()
 {
 	test -d ${TCBINDIR} && return 0
+	test -z "${toolchain_url}" && return 0
+	TOOLCHAIN=`basename ${toolchain_url}`
+	test -f ${TOOLCHAIN} || curl -sSO ${toolchain_url}
 	mkdir -p `dirname ${TCBINDIR}`
 	tar --strip-components=1 -C `dirname ${TCBINDIR}` -xf ${TOOLCHAIN}
 	true
@@ -646,7 +649,7 @@ test "$do_publish_release_tag" == "true" && {
 }
 
 test "$do_test_build_source_pkg" == "true" && {
-	test -f ${TOOLCHAIN} && install_custom_toolchain
+	install_custom_toolchain
 	cd kernel_build
 	test_build_source_pkg
 	cd ..
