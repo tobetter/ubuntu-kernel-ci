@@ -488,6 +488,12 @@ create_hwpack()
 	#
 	job_flavour=${job_flavour/-3.?}
 	case $job_flavour in
+		arndale)
+			hwpack_flavour="arndale"
+			;;
+		highbank)
+			hwpack_flavour="highbank"
+			;;
 		lt-omap|llt-omap)
 			hwpack_flavour="lt-panda"
 			;;
