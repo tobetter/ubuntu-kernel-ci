@@ -578,7 +578,7 @@ test "$JENKINS_URL" && {
 	do_test_build_source_pkg="true"
 	do_publish_source_pkg="true"
 	do_create_artifact_dir="true"
-	do_create_hwpack="true"
+	do_create_hwpack="false"
 }
 
 test "$running_standalone" == "true" && {
