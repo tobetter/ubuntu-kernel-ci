@@ -641,7 +641,6 @@ test "$do_publish_release_tag" == "true" && {
 
 test "$do_test_build_source_pkg" == "true" && {
 	test -f ${TOOLCHAIN} && install_custom_toolchain
-	test -d ${TCBINDIR} && install_custom_toolchain
 	cd kernel_build
 	test_build_source_pkg
 	cd ..
