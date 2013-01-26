@@ -420,11 +420,6 @@ test_build_source_pkg()
 	cd ..
 }
 
-publish_source_pkg()
-{
-	dput $HOST_PPA *.changes
-}
-
 download_license_protected_file()
 {
 	local url=$1
@@ -650,8 +645,12 @@ test "$do_test_build_source_pkg" == "true" && {
 }
 
 test "$do_publish_source_pkg" == "true" && {
+	test "$keyarg" == "-us -uc" && {
+		echo "skip publish_source_pkg, key not provided"
+		return 0
+	}
 	cd kernel_build
-	publish_source_pkg
+	dput $HOST_PPA *.changes
 	cd ..
 }
 
