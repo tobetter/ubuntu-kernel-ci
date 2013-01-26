@@ -468,11 +468,6 @@ get_binary_url()
 	pvar "rootfs_url" >> $OUT/jobinfo.sh
 }
 
-create_eula()
-{
-	touch $OUT/EULA.txt
-}
-
 create_artifact_dir()
 {
 	# save source pkg files to be ssh uploaded
@@ -556,7 +551,6 @@ create_hwpack()
 	hwpack_url=$(get_hwpack_url $hwpack_name)
 	pvar "hwpack_url" >> $OUT/jobinfo.sh
 	get_binary_url
-	create_eula
 	true
 }
 
