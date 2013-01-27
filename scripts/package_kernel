@@ -645,13 +645,13 @@ test "$do_test_build_source_pkg" == "true" && {
 }
 
 test "$do_publish_source_pkg" == "true" && {
-	test "$keyarg" == "-us -uc" && {
+	if [ "$keyarg" == "-us -uc" ]; then
 		echo "skip publish_source_pkg, key not provided"
-		return 0
-	}
-	cd kernel_build
-	dput $HOST_PPA *.changes
-	cd ..
+	else
+		cd kernel_build
+		dput $HOST_PPA *.changes
+		cd ..
+	fi
 }
 
 test "$do_create_artifact_dir" == "true" && {
