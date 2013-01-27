@@ -151,9 +151,8 @@ check_settings()
 
 cleanup_previous_build()
 {
-	test -d out &&
-		rm -rf out
-	mkdir out
+	test -d out || mkdir out
+	rm -rf out/*
 }
 
 #
@@ -161,16 +160,14 @@ cleanup_previous_build()
 #
 setup_kernel_git()
 {
-	test -d kernel_build/linux && {
-		mkdir new_kernel_build
-		mv kernel_build/linux new_kernel_build
-		rm -rf kernel_build
-		mv new_kernel_build kernel_build
-	}
-	test -d kernel_build/linux || {
-		mkdir -p kernel_build/linux
+	if [ -d kernel_build/linux ]; then
+		mv kernel_build/linux linux-tmp
+		rm -rf kernel_build/*
+		mv linux-tmp kernel_build/linux
+	else
+		test -d kernel_build || mkdir kernel_build
 		git clone $nearby_git kernel_build/linux
-	}
+	fi
 	cd kernel_build/linux
 	for r in $(git remote)
 	do
@@ -212,7 +209,7 @@ setup_kernel_git()
 	test -d debian.linaro && git rm -r debian.linaro
 	test "$boot_wrapper_repo" && {
 		test -d linaro/boot-wrapper && rm -rf linaro/boot-wrapper
-		mkdir -p linaro
+		test -d linaro || mkdir linaro
 		cp -a ../boot-wrapper/ linaro
 		rm -rf linaro/boot-wrapper/.git
 		git add linaro/boot-wrapper/
@@ -401,7 +398,7 @@ install_custom_toolchain()
 
 test_build_source_pkg()
 {
-	mkdir -p test_build
+	mkdir test_build
 	cd test_build
 	dpkg-source -x ../*.dsc linux
 	cd linux
@@ -416,7 +413,7 @@ test_build_source_pkg()
 	# for some reason, --prepend-path isn't always enough
 	time debuild --set-envvar=PATH="$TCBINDIR:$DEFAULT_PATH" --prepend-path=$TCBINDIR --no-lintian -us -uc -b -a$DEBARCH -j`getconf _NPROCESSORS_ONLN`
 	cd ..
-	ln *.deb *.changes ../../out
+	cp -a *.deb *.changes ../../out
 	cd ..
 }
 
@@ -466,8 +463,6 @@ get_binary_url()
 create_artifact_dir()
 {
 	# save source pkg files to be ssh uploaded
-	#
-	#rm -rf out
 	OUT=out/$BUILD_NUMBER
 	mkdir -p $OUT
 	cat /dev/null > $OUT/jobinfo.sh
@@ -627,7 +622,7 @@ test "$do_create_source_pkg" == "true" && {
 	cd kernel_build/linux
 	create_source_pkg
 	cd ..
-	ln *.tar.gz *.dsc *.changes ../out
+	cp -a *.tar.gz *.dsc *.changes ../out
 	cd ..
 }
 
