@@ -337,7 +337,7 @@ finish_changelog_and_tag()
 			debian.linaro/changelog
 	git add debian.linaro/changelog
 
-	git_tag_publish_url="ssh://gh/jcrigby/linaro-ci-kernels.git"
+	git_tag_publish_url="ssh://gh/tobetter/linux.git"
 	git_ro_url=$(echo $git_tag_publish_url | sed s#ssh://gh/#git://github.com/#)
 	release_tag=$(changelog_get debian.linaro/changelog "Source")
 	release_tag+="_"
